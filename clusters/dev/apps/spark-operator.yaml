@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: spark-operator
+  namespace: argocd
+spec:
+  project: platform
+  sources:
+    - repoURL: https://spark-operator.github.io/spark-operator
+      chart: spark-operator
+      targetRevision: 1.1.27 # TODO: pin version
+      helm:
+        releaseName: spark-operator
+        valueFiles:
+          - $values/values/common/spark-operator.yaml
+          - $values/values/dev/spark-operator.yaml
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: spark-operator
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

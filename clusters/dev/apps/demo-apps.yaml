@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-apps
+  namespace: argocd
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    targetRevision: main
+    path: charts/demo-app
+    helm:
+      releaseName: demo-app
+      valueFiles:
+        - ../../values/common/demo-apps.yaml
+        - ../../values/dev/demo-apps.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

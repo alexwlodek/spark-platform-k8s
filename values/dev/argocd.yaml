@@ -1,0 +1,4 @@
+# DEV override (kind) – np. NodePort/Ingress dodamy w kolejnej iteracji
+server:
+  service:
+    type: ClusterIP

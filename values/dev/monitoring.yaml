@@ -1,0 +1,7 @@
+# DEV overrides (np. persistence off na kind)
+grafana:
+  persistence:
+    enabled: false
+prometheus:
+  prometheusSpec:
+    storageSpec: {}
