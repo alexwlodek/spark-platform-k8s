@@ -6,9 +6,9 @@ metadata:
 spec:
   project: platform
   sources:
-    - repoURL: https://spark-operator.github.io/spark-operator
+    - repoURL: https://kubeflow.github.io/spark-operator
       chart: spark-operator
-      targetRevision: 1.1.27 # TODO: pin version
+      targetRevision: v1beta2-1.2.0-3.0.0
       helm:
         releaseName: spark-operator
         valueFiles:
