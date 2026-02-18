@@ -10,7 +10,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
+  packages: write
 
 concurrency:
   group: spark-job-image
@@ -89,6 +91,7 @@ jobs:
       - name: Create pull request
         uses: peter-evans/create-pull-request@v6
         with:
+          token: ${{ secrets.GH_PR_TOKEN != '' && secrets.GH_PR_TOKEN || secrets.GITHUB_TOKEN }}
           base: main
           branch: ci/spark-job-image-${{ needs.build-and-push.outputs.image_tag }}
           delete-branch: true

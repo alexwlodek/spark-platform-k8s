@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/<github-owner>/spark-demo-job
+  repository: ghcr.io/alexwlodek/spark-demo-job
   tag: "latest"
   pullPolicy: IfNotPresent
 
