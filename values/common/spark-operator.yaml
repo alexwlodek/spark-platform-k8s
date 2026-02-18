@@ -10,3 +10,7 @@ resources:
 
 webhook:
   enable: true
+
+spark:
+  jobNamespaces:
+    - spark-operator
