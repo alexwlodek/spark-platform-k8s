@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 ARG SPARK_VERSION=3.5.2
 ARG HADOOP_PROFILE=3
