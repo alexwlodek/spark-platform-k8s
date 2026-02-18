@@ -22,8 +22,9 @@ RUN curl -fsSL "https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spa
 
 WORKDIR /opt/spark/work-dir
 COPY job.py /opt/spark/work-dir/job.py
+COPY entrypoint.sh /opt/entrypoint.sh
+RUN chmod +x /opt/entrypoint.sh
 
 USER spark
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/opt/spark/bin/spark-submit", "--version"]
+ENTRYPOINT ["/opt/entrypoint.sh"]
