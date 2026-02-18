@@ -33,6 +33,8 @@ ARGO_REDIS_LIM_MEM="${ARGO_REDIS_LIM_MEM:-256Mi}"
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
 require kubectl
+require curl
+require awk
 
 kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
 
@@ -42,6 +44,7 @@ kubectl get ns "${ARGO_NAMESPACE}" >/dev/null 2>&1 || kubectl create ns "${ARGO_
 echo "Downloading Argo CD install manifest..."
 TMP_DIR="$(mktemp -d)"
 INSTALL="${TMP_DIR}/install.yaml"
+trap 'rm -rf "${TMP_DIR}"' EXIT
 curl -fsSL "${ARGOCD_INSTALL_URL}" -o "${INSTALL}"
 
 echo "Installing Argo CD CRDs (server-side apply)..."
@@ -56,7 +59,14 @@ patch_if_exists() {
   local obj="$1"
   local patch="$2"
   if kubectl -n "${ARGO_NAMESPACE}" get "${obj}" >/dev/null 2>&1; then
-    kubectl -n "${ARGO_NAMESPACE}" patch "${obj}" --type merge -p "${patch}" >/dev/null
+    kubectl -n "${ARGO_NAMESPACE}" patch "${obj}" --type strategic -p "${patch}" >/dev/null
+  fi
+}
+
+rollout_if_exists() {
+  local obj="$1"
+  if kubectl -n "${ARGO_NAMESPACE}" get "${obj}" >/dev/null 2>&1; then
+    kubectl -n "${ARGO_NAMESPACE}" rollout status "${obj}" --timeout="${ROLLOUT_TIMEOUT}"
   fi
 }
 
@@ -85,11 +95,11 @@ patch_resources "deployment/argocd-redis" "redis" \
   "${ARGO_REDIS_REQ_CPU}" "${ARGO_REDIS_REQ_MEM}" "${ARGO_REDIS_LIM_CPU}" "${ARGO_REDIS_LIM_MEM}"
 
 echo "Waiting for Argo CD API server..."
-kubectl -n "${ARGO_NAMESPACE}" rollout status deployment/argocd-server --timeout="${ROLLOUT_TIMEOUT}"
-kubectl -n "${ARGO_NAMESPACE}" rollout status statefulset/argocd-application-controller --timeout="${ROLLOUT_TIMEOUT}"
-kubectl -n "${ARGO_NAMESPACE}" rollout status deployment/argocd-repo-server --timeout="${ROLLOUT_TIMEOUT}"
-kubectl -n "${ARGO_NAMESPACE}" rollout status deployment/argocd-applicationset-controller --timeout="${ROLLOUT_TIMEOUT}"
-kubectl -n "${ARGO_NAMESPACE}" rollout status deployment/argocd-redis --timeout="${ROLLOUT_TIMEOUT}"
+rollout_if_exists "deployment/argocd-server"
+rollout_if_exists "statefulset/argocd-application-controller"
+rollout_if_exists "deployment/argocd-repo-server"
+rollout_if_exists "deployment/argocd-applicationset-controller"
+rollout_if_exists "deployment/argocd-redis"
 
 echo "Applying AppProject + root application..."
 kubectl apply -n "${ARGO_NAMESPACE}" -f clusters/dev/projects/platform.yaml
@@ -97,4 +107,4 @@ kubectl apply -n "${ARGO_NAMESPACE}" -f clusters/dev/root.yaml
 
 echo "✅ Argo CD bootstrapped and root app applied."
 echo "Check:"
-echo "  kubectl -n argocd get applications"
+echo "  kubectl -n ${ARGO_NAMESPACE} get applications"
