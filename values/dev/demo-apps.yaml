@@ -1,1 +1,12 @@
-replicaCount: 1
+image:
+  repository: ghcr.io/alexwlodek/spark-demo-job
+  tag: "0.1.0-dev"
+
+spark:
+  arguments:
+    - "100000"
+  driver:
+    memory: "768m"
+  executor:
+    instances: 1
+    memory: "768m"

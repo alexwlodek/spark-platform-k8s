@@ -13,4 +13,5 @@ webhook:
 
 spark:
   jobNamespaces:
+    - apps
     - spark-operator

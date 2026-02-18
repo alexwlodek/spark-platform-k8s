@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/<github-owner>/spark-demo-job
+  repository: ""
   tag: "latest"
   pullPolicy: IfNotPresent
 
@@ -9,8 +9,7 @@ spark:
   mode: cluster
   pythonVersion: "3"
   mainApplicationFile: local:///opt/spark/work-dir/job.py
-  arguments:
-    - "500000"
+  arguments: []
   imagePullSecrets: []
   restartPolicy:
     type: Never

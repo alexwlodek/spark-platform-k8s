@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: demo-apps
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
 spec:
   project: platform
   source:
@@ -23,3 +25,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true

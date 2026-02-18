@@ -1,0 +1,43 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: {{ include "demo-app.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "demo-app.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.spark.type | quote }}
+  mode: {{ .Values.spark.mode | quote }}
+  sparkVersion: {{ .Values.spark.sparkVersion | quote }}
+  pythonVersion: {{ .Values.spark.pythonVersion | quote }}
+  image: "{{ required "image.repository must be set" .Values.image.repository }}:{{ .Values.image.tag }}"
+  imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+  mainApplicationFile: {{ .Values.spark.mainApplicationFile | quote }}
+{{- with .Values.spark.arguments }}
+  arguments:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.spark.imagePullSecrets }}
+  imagePullSecrets:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  restartPolicy:
+    type: {{ .Values.spark.restartPolicy.type | quote }}
+  driver:
+    cores: {{ .Values.spark.driver.cores }}
+    coreLimit: {{ .Values.spark.driver.coreLimit | quote }}
+    memory: {{ .Values.spark.driver.memory | quote }}
+    serviceAccount: {{ .Values.spark.driver.serviceAccount | quote }}
+{{- with .Values.spark.driver.labels }}
+    labels:
+{{ toYaml . | indent 6 }}
+{{- end }}
+  executor:
+    instances: {{ .Values.spark.executor.instances }}
+    cores: {{ .Values.spark.executor.cores }}
+    coreLimit: {{ .Values.spark.executor.coreLimit | quote }}
+    memory: {{ .Values.spark.executor.memory | quote }}
+{{- with .Values.spark.executor.labels }}
+    labels:
+{{ toYaml . | indent 6 }}
+{{- end }}
