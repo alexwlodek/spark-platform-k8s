@@ -1,6 +1,7 @@
 image:
   repository: ghcr.io/alexwlodek/spark-demo-job
-  tag: "sha-944af00cce7a"
+  tag: "latest"
+  pullPolicy: Always
 
 spark:
   arguments:
