@@ -1,0 +1,32 @@
+{{- if .Values.metrics.podMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "demo-app.fullname" . }}-spark-drivers
+  namespace: {{ default .Release.Namespace .Values.metrics.podMonitor.namespace }}
+  labels:
+{{ include "demo-app.labels" . | indent 4 }}
+{{- with .Values.metrics.podMonitor.labels }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/name: {{ include "demo-app.name" . | quote }}
+      spark-role: {{ default "driver" .Values.metrics.podMonitor.selector.sparkRole | quote }}
+  jobLabel: {{ .Values.metrics.podMonitor.jobLabel | quote }}
+  podMetricsEndpoints:
+{{- range $endpoint := .Values.metrics.podMonitor.endpoints }}
+    - path: {{ $endpoint.path | quote }}
+      targetPort: {{ $endpoint.targetPort }}
+      interval: {{ default $.Values.metrics.podMonitor.interval $endpoint.interval | quote }}
+      scrapeTimeout: {{ default $.Values.metrics.podMonitor.scrapeTimeout $endpoint.scrapeTimeout | quote }}
+{{- with $endpoint.scheme }}
+      scheme: {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

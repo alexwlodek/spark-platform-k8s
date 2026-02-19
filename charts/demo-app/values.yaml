@@ -15,6 +15,7 @@ spark:
   pythonVersion: "3"
   mainApplicationFile: local:///opt/spark/work-dir/job.py
   arguments: []
+  sparkConf: {}
   timeToLiveSeconds: 10800
   imagePullSecrets: []
   restartPolicy:
@@ -32,3 +33,24 @@ spark:
     memory: "1024m"
     deleteOnTermination: true
     labels: {}
+
+metrics:
+  podMonitor:
+    enabled: false
+    namespace: ""
+    labels: {}
+    jobLabel: demo-app-spark-drivers
+    selector:
+      sparkRole: driver
+    interval: 30s
+    scrapeTimeout: 10s
+    endpoints:
+      - path: /metrics/prometheus
+        targetPort: 4040
+      - path: /metrics/executors/prometheus
+        targetPort: 4040
+
+grafanaDashboard:
+  enabled: false
+  namespace: ""
+  labels: {}

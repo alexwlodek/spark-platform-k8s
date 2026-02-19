@@ -15,3 +15,13 @@ spark:
   jobNamespaces:
     - apps
     - spark-operator
+
+prometheus:
+  metrics:
+    enable: true
+  podMonitor:
+    create: true
+    labels:
+      release: kube-prometheus-stack
+    podMetricsEndpoint:
+      interval: 30s

@@ -36,6 +36,10 @@ mainApplicationFile: {{ $spark.mainApplicationFile | quote }}
 arguments:
 {{ toYaml . | indent 2 }}
 {{- end }}
+{{- with $spark.sparkConf }}
+sparkConf:
+{{ toYaml . | indent 2 }}
+{{- end }}
 {{- with $spark.timeToLiveSeconds }}
 timeToLiveSeconds: {{ . }}
 {{- end }}

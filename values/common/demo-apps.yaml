@@ -37,6 +37,8 @@ spark:
   mainApplicationFile: local:///opt/spark/work-dir/job.py
   arguments:
     - "500000"
+  sparkConf:
+    "spark.ui.prometheus.enabled": "true"
   timeToLiveSeconds: 7200
   imagePullSecrets: []
   restartPolicy:
@@ -54,3 +56,14 @@ spark:
     memory: "1024m"
     deleteOnTermination: true
     labels: {}
+
+metrics:
+  podMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+    interval: 15s
+    scrapeTimeout: 10s
+
+grafanaDashboard:
+  enabled: true
