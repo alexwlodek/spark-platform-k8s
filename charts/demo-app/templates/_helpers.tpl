@@ -36,6 +36,9 @@ mainApplicationFile: {{ $spark.mainApplicationFile | quote }}
 arguments:
 {{ toYaml . | indent 2 }}
 {{- end }}
+{{- with $spark.timeToLiveSeconds }}
+timeToLiveSeconds: {{ . }}
+{{- end }}
 {{- with $spark.imagePullSecrets }}
 imagePullSecrets:
 {{ toYaml . | indent 2 }}
@@ -56,6 +59,7 @@ executor:
   cores: {{ $spark.executor.cores }}
   coreLimit: {{ $spark.executor.coreLimit | quote }}
   memory: {{ $spark.executor.memory | quote }}
+  deleteOnTermination: {{ $spark.executor.deleteOnTermination }}
 {{- with $spark.executor.labels }}
   labels:
 {{ toYaml . | indent 4 }}
