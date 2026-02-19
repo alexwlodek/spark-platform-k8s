@@ -74,7 +74,24 @@ data:
           "fieldConfig": {
             "defaults": {
               "decimals": 2,
-              "unit": "percent"
+              "unit": "percent",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "green",
+                    "value": 95
+                  }
+                ]
+              }
             },
             "overrides": []
           },
@@ -101,12 +118,12 @@ data:
           },
           "targets": [
             {
-              "expr": "100 * sum(rate(spark_application_success_count[5m])) / clamp_min(sum(rate(spark_application_submit_count[5m])), 0.0001)",
-              "legendFormat": "success rate",
+              "expr": "clamp_max(100 * sum(increase(spark_application_success_count[30m])) / clamp_min(sum(increase(spark_application_success_count[30m]) + increase(spark_application_failure_count[30m])), 1), 100)",
+              "legendFormat": "success rate (30m)",
               "refId": "A"
             }
           ],
-          "title": "Success Rate",
+          "title": "Success Rate (30m)",
           "type": "stat"
         },
         {
