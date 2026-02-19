@@ -1,0 +1,72 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "demo-app.fullname" . }}-spark
+  namespace: {{ default .Release.Namespace .Values.prometheusRule.namespace }}
+  labels:
+{{ include "demo-app.labels" . | indent 4 }}
+{{- with .Values.prometheusRule.labels }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  groups:
+    - name: {{ include "demo-app.fullname" . }}.spark.recording
+      rules:
+        - record: spark:submissions_per_min_5m
+          expr: sum(rate(spark_application_submit_count[5m])) * 60
+        - record: spark:failures_per_min_5m
+          expr: sum(rate(spark_application_failure_count[5m])) * 60
+        - record: spark:running_apps
+          expr: sum(spark_application_running_count)
+        - record: spark:start_latency_p95_15m
+          expr: histogram_quantile(0.95, sum by (le) (rate(spark_application_start_latency_seconds_histogram_bucket[15m])))
+        - record: spark:completed_jobs_30m
+          expr: sum(increase(spark_application_success_count[30m]) + increase(spark_application_failure_count[30m]))
+        - record: spark:success_rate_30m
+          expr: clamp_max(100 * sum(increase(spark_application_success_count[30m])) / clamp_min(sum(increase(spark_application_success_count[30m]) + increase(spark_application_failure_count[30m])), 1), 100)
+        - record: spark:failure_rate_30m
+          expr: clamp_min(100 - spark:success_rate_30m, 0)
+    - name: {{ include "demo-app.fullname" . }}.spark.alerts
+      rules:
+{{- if .Values.prometheusRule.alerts.submissionStalled.enabled }}
+        - alert: SparkSubmissionStalled
+          expr: spark:submissions_per_min_5m == 0
+          for: {{ .Values.prometheusRule.alerts.submissionStalled.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Spark submissions stopped
+            description: No Spark submissions detected for at least {{ .Values.prometheusRule.alerts.submissionStalled.for }}.
+{{- end }}
+{{- if .Values.prometheusRule.alerts.failureRateHigh.enabled }}
+        - alert: SparkFailureRateHigh
+          expr: spark:completed_jobs_30m >= {{ .Values.prometheusRule.alerts.failureRateHigh.minCompletedJobs }} and spark:failure_rate_30m > {{ .Values.prometheusRule.alerts.failureRateHigh.thresholdPercent }}
+          for: {{ .Values.prometheusRule.alerts.failureRateHigh.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Spark failure rate is high
+            description: Spark failure rate over last 30m is above {{ .Values.prometheusRule.alerts.failureRateHigh.thresholdPercent }}%.
+{{- end }}
+{{- if .Values.prometheusRule.alerts.startLatencyHigh.enabled }}
+        - alert: SparkStartLatencyHigh
+          expr: spark:start_latency_p95_15m > {{ .Values.prometheusRule.alerts.startLatencyHigh.thresholdSeconds }}
+          for: {{ .Values.prometheusRule.alerts.startLatencyHigh.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Spark start latency p95 is high
+            description: p95 Spark application start latency is above {{ .Values.prometheusRule.alerts.startLatencyHigh.thresholdSeconds }}s.
+{{- end }}
+{{- if .Values.prometheusRule.alerts.driverScrapeMissing.enabled }}
+        - alert: SparkDriverMetricsMissing
+          expr: spark:running_apps > 0 and sum(up{job="demo-app-spark-drivers"}) == 0
+          for: {{ .Values.prometheusRule.alerts.driverScrapeMissing.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Spark drivers are running but metrics are not scraped
+            description: At least one Spark app is running, but no driver metrics endpoint is up for {{ .Values.prometheusRule.alerts.driverScrapeMissing.for }}.
+{{- end }}
+{{- end }}

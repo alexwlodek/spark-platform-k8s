@@ -58,7 +58,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(spark_application_submit_count[5m])) * 60",
+              "expr": "spark:submissions_per_min_5m",
               "legendFormat": "submits/min",
               "refId": "A"
             }
@@ -118,7 +118,7 @@ data:
           },
           "targets": [
             {
-              "expr": "clamp_max(100 * sum(increase(spark_application_success_count[30m])) / clamp_min(sum(increase(spark_application_success_count[30m]) + increase(spark_application_failure_count[30m])), 1), 100)",
+              "expr": "spark:success_rate_30m",
               "legendFormat": "success rate (30m)",
               "refId": "A"
             }
@@ -160,7 +160,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(spark_application_failure_count[5m])) * 60",
+              "expr": "spark:failures_per_min_5m",
               "legendFormat": "failures/min",
               "refId": "A"
             }
@@ -202,7 +202,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(spark_application_running_count)",
+              "expr": "spark:running_apps",
               "legendFormat": "running",
               "refId": "A"
             }
@@ -242,7 +242,7 @@ data:
           },
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum by (le) (rate(spark_application_start_latency_seconds_histogram_bucket[15m])))",
+              "expr": "spark:start_latency_p95_15m",
               "legendFormat": "p95 start latency",
               "refId": "A"
             }

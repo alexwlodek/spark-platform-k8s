@@ -67,3 +67,20 @@ metrics:
 
 grafanaDashboard:
   enabled: true
+
+prometheusRule:
+  enabled: true
+  labels:
+    release: kube-prometheus-stack
+  alerts:
+    submissionStalled:
+      for: 20m
+    failureRateHigh:
+      for: 10m
+      minCompletedJobs: 3
+      thresholdPercent: 20
+    startLatencyHigh:
+      for: 10m
+      thresholdSeconds: 180
+    driverScrapeMissing:
+      for: 5m

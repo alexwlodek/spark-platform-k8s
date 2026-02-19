@@ -54,3 +54,24 @@ grafanaDashboard:
   enabled: false
   namespace: ""
   labels: {}
+
+prometheusRule:
+  enabled: false
+  namespace: ""
+  labels: {}
+  alerts:
+    submissionStalled:
+      enabled: true
+      for: 20m
+    failureRateHigh:
+      enabled: true
+      for: 10m
+      minCompletedJobs: 3
+      thresholdPercent: 20
+    startLatencyHigh:
+      enabled: true
+      for: 10m
+      thresholdSeconds: 180
+    driverScrapeMissing:
+      enabled: true
+      for: 5m

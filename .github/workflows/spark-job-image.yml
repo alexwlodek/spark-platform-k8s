@@ -1,4 +1,4 @@
-name: Spark Job Image
+name: Build Spark Job Image
 
 on:
   push:
