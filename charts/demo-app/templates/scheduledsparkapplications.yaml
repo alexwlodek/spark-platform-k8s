@@ -1,0 +1,26 @@
+{{ range $i, $schedule := .Values.scheduledSparkApplications }}
+{{ if gt $i 0 }}
+---
+{{ end }}
+{{ $spark := mergeOverwrite (deepCopy $.Values.spark) (default dict $schedule.spark) }}
+{{ $image := mergeOverwrite (deepCopy $.Values.image) (default dict $schedule.image) }}
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: ScheduledSparkApplication
+metadata:
+  name: {{ printf "%s-%s" (include "demo-app.fullname" $) $schedule.name | trunc 63 | trimSuffix "-" }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+{{ include "demo-app.labels" $ | indent 4 }}
+    demo-app.schedule: {{ $schedule.name | quote }}
+spec:
+  schedule: {{ required "scheduledSparkApplications[].schedule must be set" $schedule.schedule | quote }}
+  concurrencyPolicy: {{ default "Forbid" $schedule.concurrencyPolicy | quote }}
+  successfulRunHistoryLimit: {{ default 1 $schedule.successfulRunHistoryLimit }}
+  failedRunHistoryLimit: {{ default 3 $schedule.failedRunHistoryLimit }}
+  suspend: {{ default false $schedule.suspend }}
+{{ with $schedule.timeZone }}
+  timeZone: {{ . | quote }}
+{{ end }}
+  template:
+{{ include "demo-app.sparkTemplateSpec" (dict "spark" $spark "image" $image) | indent 4 }}
+{{ end }}

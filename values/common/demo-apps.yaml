@@ -3,6 +3,32 @@ image:
   tag: "latest"
   pullPolicy: IfNotPresent
 
+sparkApplication:
+  enabled: false
+
+scheduledSparkApplications:
+  - name: light
+    schedule: "*/5 * * * *"
+    concurrencyPolicy: Forbid
+    successfulRunHistoryLimit: 2
+    failedRunHistoryLimit: 2
+    spark:
+      arguments:
+        - "100000"
+  - name: heavy
+    schedule: "*/30 * * * *"
+    concurrencyPolicy: Forbid
+    successfulRunHistoryLimit: 1
+    failedRunHistoryLimit: 2
+    spark:
+      arguments:
+        - "1000000"
+      driver:
+        memory: "1536m"
+      executor:
+        instances: 2
+        memory: "1536m"
+
 spark:
   sparkVersion: "3.5.2"
   type: Python
