@@ -7,6 +7,8 @@ KIND_CONFIG="${KIND_CONFIG:-scripts/kind-config.yaml}"
 KIND_DELETE_EXISTING="${KIND_DELETE_EXISTING:-0}"
 KIND_PRELOAD_IMAGES="${KIND_PRELOAD_IMAGES:-ghcr.io/kubeflow/spark-operator/controller:2.4.0 ghcr.io/alexwlodek/spark-demo-job:latest}"
 KIND_PRELOAD_PULL_MISSING="${KIND_PRELOAD_PULL_MISSING:-1}"
+KIND_FIX_NODE_DNS="${KIND_FIX_NODE_DNS:-1}"
+KIND_NODE_DNS_SERVERS="${KIND_NODE_DNS_SERVERS:-1.1.1.1 8.8.8.8}"
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
 require kind
@@ -42,6 +44,29 @@ preload_images() {
   done
 }
 
+fix_kind_node_dns() {
+  if [[ "${KIND_FIX_NODE_DNS}" != "1" ]]; then
+    return
+  fi
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Skipping kind node DNS fix (docker CLI not found)."
+    return
+  fi
+
+  local node
+  while IFS= read -r node; do
+    [[ -z "${node}" ]] && continue
+    {
+      local dns
+      for dns in ${KIND_NODE_DNS_SERVERS}; do
+        echo "nameserver ${dns}"
+      done
+      echo "options ndots:0"
+    } | docker exec -i "${node}" sh -c "cat > /etc/resolv.conf"
+  done < <(kind get nodes --name "${CLUSTER_NAME}")
+}
+
 if kind get clusters | grep -qx "${CLUSTER_NAME}"; then
   if [[ "${KIND_DELETE_EXISTING}" == "1" ]]; then
     echo "kind cluster '${CLUSTER_NAME}' exists -> deleting (KIND_DELETE_EXISTING=1)"
@@ -61,6 +86,7 @@ fi
 
 kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
 
+fix_kind_node_dns
 preload_images
 
 echo "Installing ingress-nginx (kind recommended manifest)..."

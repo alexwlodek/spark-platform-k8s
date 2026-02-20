@@ -22,6 +22,8 @@ Tuning:
 - `KIND_PRELOAD_PULL_MISSING=1` (default): pulls missing images to local Docker cache, then loads them into kind
 - `KIND_PRELOAD_IMAGES="image1:tag image2:tag"`: override preload list
 - `KIND_PRELOAD_IMAGES=""`: disable preload cache
+- `KIND_FIX_NODE_DNS=1` (default): rewrites `/etc/resolv.conf` on all kind nodes
+- `KIND_NODE_DNS_SERVERS="1.1.1.1 8.8.8.8"`: DNS servers used by node-level image pulls
 
 ## Observability drills
 

@@ -55,7 +55,7 @@ config:
     [OUTPUT]
         Name es
         Match kube.*
-        Host elasticsearch-master
+        Host elasticsearch
         Port 9200
         Logstash_Format On
         Logstash_Prefix k8s

@@ -5,7 +5,7 @@ replicaCount: 1
 
 elasticsearch:
   hosts:
-    - elasticsearch-master
+    - elasticsearch
   port: "9200"
   security:
     auth:
@@ -16,10 +16,10 @@ elasticsearch:
 resources:
   requests:
     cpu: 150m
-    memory: 384Mi
+    memory: 768Mi
   limits:
     cpu: 700m
-    memory: 768Mi
+    memory: 1536Mi
 
 persistence:
   enabled: true
