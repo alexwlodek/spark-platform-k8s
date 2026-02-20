@@ -8,6 +8,51 @@ scripts/dev-up.sh
 
 This creates a kind cluster, installs ingress-nginx and bootstraps Argo CD with app-of-apps.
 
+### Kind image cache (GHCR)
+
+`scripts/dev-kind-up.sh` preloads selected images into kind nodes from local Docker cache:
+
+- `ghcr.io/kubeflow/spark-operator/controller:2.4.0`
+- `ghcr.io/alexwlodek/spark-demo-job:latest`
+
+This avoids image pulls from inside kind nodes (helpful when node DNS/network to `ghcr.io` is flaky).
+
+Tuning:
+
+- `KIND_PRELOAD_PULL_MISSING=1` (default): pulls missing images to local Docker cache, then loads them into kind
+- `KIND_PRELOAD_IMAGES="image1:tag image2:tag"`: override preload list
+- `KIND_PRELOAD_IMAGES=""`: disable preload cache
+
+## Observability drills
+
+Dedicated drill assets are in:
+
+- `tests/observability/bad-image-drill`
+- `tests/observability/logging-smoke`
+
+- `bad-image-drill`: broken Spark image + dedicated PrometheusRule (alert practice)
+- `logging-smoke`: synthetic app logs + Elasticsearch verification (log pipeline practice)
+
+## Central logging (EFK-lite)
+
+DEV stack uses:
+
+- Elasticsearch (Bitnami chart)
+- Kibana (Bitnami chart)
+- Fluent Bit (DaemonSet log collector)
+
+Argo applications:
+
+- `logging-elasticsearch`
+- `logging-kibana`
+- `logging-fluent-bit`
+
+Quick access:
+
+```bash
+scripts/dev-kibana-ui.sh
+```
+
 ## Spark demo job (GitOps)
 
 `demo-apps` deploys a `SparkApplication` from `charts/demo-app`.

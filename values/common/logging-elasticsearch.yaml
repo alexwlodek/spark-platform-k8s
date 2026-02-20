@@ -1,0 +1,45 @@
+security:
+  enabled: false
+
+extraConfig:
+  node:
+    store:
+      allow_mmap: false
+
+master:
+  masterOnly: false
+  replicaCount: 1
+  heapSize: 512m
+  resources:
+    requests:
+      cpu: 300m
+      memory: 1024Mi
+    limits:
+      cpu: "1"
+      memory: 1024Mi
+  persistence:
+    enabled: true
+    size: 10Gi
+  pdb:
+    create: false
+
+data:
+  replicaCount: 0
+  pdb:
+    create: false
+
+coordinating:
+  replicaCount: 0
+  pdb:
+    create: false
+
+ingest:
+  enabled: false
+  pdb:
+    create: false
+
+sysctlImage:
+  enabled: false
+
+volumePermissions:
+  enabled: false

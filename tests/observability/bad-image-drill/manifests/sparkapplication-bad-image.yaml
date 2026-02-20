@@ -1,0 +1,36 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: drill-bad-image
+  namespace: apps
+  labels:
+    drill.aws-k8s.io/name: bad-image
+spec:
+  type: Python
+  mode: cluster
+  sparkVersion: "3.5.2"
+  pythonVersion: "3"
+  image: ghcr.io/alexwlodek/spark-demo-job:does-not-exist
+  imagePullPolicy: Always
+  mainApplicationFile: local:///opt/spark/work-dir/job.py
+  arguments:
+    - "100000"
+  sparkConf:
+    "spark.ui.prometheus.enabled": "true"
+  timeToLiveSeconds: 900
+  restartPolicy:
+    type: Never
+  driver:
+    cores: 1
+    coreLimit: "1200m"
+    memory: "512m"
+    serviceAccount: spark-operator-spark
+    labels:
+      app.kubernetes.io/name: demo-app
+      app.kubernetes.io/instance: demo-app
+  executor:
+    instances: 1
+    cores: 1
+    coreLimit: "1200m"
+    memory: "512m"
+    deleteOnTermination: true

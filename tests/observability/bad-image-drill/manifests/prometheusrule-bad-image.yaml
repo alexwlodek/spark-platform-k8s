@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: spark-drill-alerts
+  namespace: apps
+  labels:
+    release: kube-prometheus-stack
+    drill.aws-k8s.io/name: bad-image
+spec:
+  groups:
+    - name: spark.drill.bad-image
+      rules:
+        - record: drill:spark_image_pull_backoff_pods
+          expr: sum(kube_pod_container_status_waiting_reason{namespace="apps",reason="ImagePullBackOff",pod=~"drill-bad-image.*"})
+        - alert: DrillSparkImagePullBackOff
+          expr: drill:spark_image_pull_backoff_pods > 0
+          for: 2m
+          labels:
+            severity: warning
+            drill: "true"
+          annotations:
+            summary: Drill Spark pod in ImagePullBackOff
+            description: Spark drill detected a pod with ImagePullBackOff in namespace apps.

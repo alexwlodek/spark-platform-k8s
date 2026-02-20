@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: logging-elasticsearch
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: elasticsearch
+      targetRevision: 22.1.6
+      helm:
+        releaseName: elasticsearch
+        valueFiles:
+          - $values/values/common/logging-elasticsearch.yaml
+          - $values/values/dev/logging-elasticsearch.yaml
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

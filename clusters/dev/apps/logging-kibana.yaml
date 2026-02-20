@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: logging-kibana
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "13"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: kibana
+      targetRevision: 12.1.10
+      helm:
+        releaseName: kibana
+        valueFiles:
+          - $values/values/common/logging-kibana.yaml
+          - $values/values/dev/logging-kibana.yaml
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: logging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
