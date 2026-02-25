@@ -10,7 +10,7 @@ spec:
   sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: kibana
-      targetRevision: 12.1.10
+      targetRevision: 11.0.8
       helm:
         releaseName: kibana
         valueFiles:

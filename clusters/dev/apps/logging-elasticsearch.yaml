@@ -10,7 +10,7 @@ spec:
   sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: elasticsearch
-      targetRevision: 22.1.6
+      targetRevision: 20.0.4
       helm:
         releaseName: elasticsearch
         valueFiles:
