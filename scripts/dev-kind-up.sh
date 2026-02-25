@@ -6,7 +6,9 @@ KIND_IMAGE="${KIND_IMAGE:-kindest/node:v1.29.4}"
 KIND_CONFIG="${KIND_CONFIG:-scripts/kind-config.yaml}"
 KIND_DELETE_EXISTING="${KIND_DELETE_EXISTING:-0}"
 KIND_PRELOAD_IMAGES="${KIND_PRELOAD_IMAGES:-ghcr.io/kubeflow/spark-operator/controller:2.4.0 ghcr.io/alexwlodek/spark-demo-job:latest}"
+KIND_PRELOAD_ENABLED="${KIND_PRELOAD_ENABLED:-0}"
 KIND_PRELOAD_PULL_MISSING="${KIND_PRELOAD_PULL_MISSING:-1}"
+KIND_PRELOAD_RETRIES="${KIND_PRELOAD_RETRIES:-3}"
 KIND_FIX_NODE_DNS="${KIND_FIX_NODE_DNS:-1}"
 KIND_NODE_DNS_SERVERS="${KIND_NODE_DNS_SERVERS:-1.1.1.1 8.8.8.8}"
 
@@ -15,12 +17,29 @@ require kind
 require kubectl
 
 preload_images() {
+  if [[ "${KIND_PRELOAD_ENABLED}" != "1" ]]; then
+    echo "Skipping image preload cache (KIND_PRELOAD_ENABLED=${KIND_PRELOAD_ENABLED})."
+    return
+  fi
+
   if [[ -z "${KIND_PRELOAD_IMAGES// }" ]]; then
     return
   fi
 
   if ! command -v docker >/dev/null 2>&1; then
     echo "Skipping image preload cache (docker CLI not found)."
+    return
+  fi
+
+  local node
+  local nodes=()
+  while IFS= read -r node; do
+    [[ -z "${node}" ]] && continue
+    nodes+=("${node}")
+  done < <(kind get nodes --name "${CLUSTER_NAME}")
+
+  if [[ "${#nodes[@]}" -eq 0 ]]; then
+    echo "Skipping preload: no kind nodes found in cluster '${CLUSTER_NAME}'."
     return
   fi
 
@@ -39,8 +58,24 @@ preload_images() {
       fi
     fi
 
-    echo "Preloading image into kind nodes: ${image}"
-    kind load docker-image --name "${CLUSTER_NAME}" "${image}" >/dev/null
+    local attempt
+    for node in "${nodes[@]}"; do
+      attempt=1
+      while true; do
+        if kind load docker-image --name "${CLUSTER_NAME}" --nodes "${node}" "${image}" >/dev/null; then
+          break
+        fi
+
+        if (( attempt >= KIND_PRELOAD_RETRIES )); then
+          echo "ERROR: failed to preload ${image} into node ${node} after ${KIND_PRELOAD_RETRIES} attempts." >&2
+          return 1
+        fi
+
+        attempt=$((attempt + 1))
+        echo "Retrying preload (${attempt}/${KIND_PRELOAD_RETRIES}): ${image} -> ${node}"
+        sleep 1
+      done
+    done
   done
 }
 

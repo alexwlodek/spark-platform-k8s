@@ -3,16 +3,10 @@ kind: Application
 metadata:
   name: argocd
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: platform
-  source:
-    repoURL: https://argoproj.github.io/argo-helm
-    chart: argo-cd
-    targetRevision: 7.7.0 # TODO: pin version
-    helm:
-      valueFiles:
-        - $values/values/common/argocd.yaml
-        - $values/values/dev/argocd.yaml
   sources:
     - repoURL: https://argoproj.github.io/argo-helm
       chart: argo-cd
@@ -33,3 +27,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
