@@ -12,3 +12,4 @@ redisSecretInit:
 server:
   service:
     type: ClusterIP
+
