@@ -6,6 +6,9 @@ configs:
   params:
     server.insecure: true
 
+redisSecretInit:
+  enabled: false
+
 server:
   service:
     type: ClusterIP
