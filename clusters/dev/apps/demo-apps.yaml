@@ -7,15 +7,18 @@ metadata:
     argocd.argoproj.io/sync-wave: "30"
 spec:
   project: platform
-  source:
-    repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
-    targetRevision: main
-    path: charts/demo-app
-    helm:
-      releaseName: demo-app
-      valueFiles:
-        - ../../values/common/demo-apps.yaml
-        - ../../values/dev/demo-apps.yaml
+  sources:
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      path: charts/demo-app
+      helm:
+        releaseName: demo-app
+        valueFiles:
+          - $values/values/common/demo-apps.yaml
+          - $values/values/dev/demo-apps.yaml
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: apps
