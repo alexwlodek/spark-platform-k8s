@@ -7,9 +7,8 @@ configs:
     server.insecure: true
 
 redisSecretInit:
-  enabled: false
+  enabled: true
 
 server:
   service:
     type: ClusterIP
-

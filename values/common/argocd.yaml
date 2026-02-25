@@ -1,17 +1,17 @@
 server:
   resources:
     requests:
-      cpu: 200m
+      cpu: 150m
       memory: 256Mi
     limits:
-      cpu: "1"
-      memory: 1Gi
+      cpu: 500m
+      memory: 512Mi
 
 controller:
   resources:
     requests:
-      cpu: 300m
-      memory: 512Mi
+      cpu: 500m
+      memory: 768Mi
     limits:
       cpu: "2"
       memory: 2Gi
@@ -19,22 +19,13 @@ controller:
 repoServer:
   resources:
     requests:
-      cpu: 300m
-      memory: 512Mi
+      cpu: 600m
+      memory: 1Gi
     limits:
-      cpu: "2"
+      cpu: "3"
       memory: 2Gi
 
 applicationSet:
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
-
-redis:
   resources:
     requests:
       cpu: 100m
@@ -42,3 +33,18 @@ redis:
     limits:
       cpu: 300m
       memory: 256Mi
+
+redis:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+configs:
+  params:
+    controller.status.processors: "20"
+    controller.operation.processors: "10"
+    reposerver.parallelism.limit: "6"

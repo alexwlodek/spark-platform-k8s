@@ -15,11 +15,11 @@ elasticsearch:
 
 resources:
   requests:
-    cpu: 150m
-    memory: 768Mi
+    cpu: 100m
+    memory: 512Mi
   limits:
-    cpu: 700m
-    memory: 1536Mi
+    cpu: 500m
+    memory: 1Gi
 
 persistence:
   enabled: true

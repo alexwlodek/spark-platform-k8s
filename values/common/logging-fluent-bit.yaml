@@ -5,11 +5,11 @@ testFramework:
 
 resources:
   requests:
-    cpu: 50m
-    memory: 128Mi
+    cpu: 40m
+    memory: 96Mi
   limits:
-    cpu: 300m
-    memory: 256Mi
+    cpu: 200m
+    memory: 192Mi
 
 tolerations:
   - operator: Exists
