@@ -44,9 +44,7 @@ jobs:
           IMAGE_PATH="${GHCR_IMAGE_REPOSITORY:-${OWNER_LC}/order-generator}"
           IMAGE_PATH="${IMAGE_PATH#ghcr.io/}"
           IMAGE_REPOSITORY="ghcr.io/${IMAGE_PATH}"
-          IMAGE_TAG="sha-${GITHUB_SHA::12}"
           echo "image_repository=${IMAGE_REPOSITORY}" >> "${GITHUB_OUTPUT}"
-          echo "image_tag=${IMAGE_TAG}" >> "${GITHUB_OUTPUT}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -58,15 +56,13 @@ jobs:
           file: apps/order-generator/Dockerfile
           push: true
           tags: |
-            ${{ steps.meta.outputs.image_repository }}:${{ steps.meta.outputs.image_tag }}
-            ${{ steps.meta.outputs.image_repository }}:main
             ${{ steps.meta.outputs.image_repository }}:latest
           provenance: false
 
       - name: Update dev image tag values
         run: |
           sed -E -i 's|^    repository: ".*"$|    repository: "${{ steps.meta.outputs.image_repository }}"|' values/dev/streaming-generator-image.yaml
-          sed -E -i 's|^    tag: ".*"$|    tag: "${{ steps.meta.outputs.image_tag }}"|' values/dev/streaming-generator-image.yaml
+          sed -E -i 's|^    tag: ".*"$|    tag: "latest"|' values/dev/streaming-generator-image.yaml
 
       - name: Commit values update
         run: |
@@ -78,5 +74,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add values/dev/streaming-generator-image.yaml
-          git commit -m "chore(dev): bump order-generator image to ${{ steps.meta.outputs.image_tag }}"
+          git commit -m "chore(dev): set order-generator image tag to latest"
           git push
