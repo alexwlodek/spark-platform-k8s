@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: streaming-kafka
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "26"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      path: charts/streaming-kafka
+      helm:
+        releaseName: streaming-kafka
+        valueFiles:
+          - $values/values/common/streaming-kafka.yaml
+          - $values/values/dev/streaming-kafka.yaml
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

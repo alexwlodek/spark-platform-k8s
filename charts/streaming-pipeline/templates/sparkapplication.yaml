@@ -1,0 +1,53 @@
+{{- if .Values.sparkApplication.enabled }}
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: {{ include "streaming-pipeline.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "streaming-pipeline.labels" . | indent 4 }}
+{{- with .Values.sparkApplication.labels }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.sparkApplication.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.sparkApplication.type | quote }}
+  mode: {{ .Values.sparkApplication.mode | quote }}
+  sparkVersion: {{ .Values.sparkApplication.sparkVersion | quote }}
+  pythonVersion: {{ .Values.sparkApplication.pythonVersion | quote }}
+  image: "{{ required "sparkApplication.image.repository must be set" .Values.sparkApplication.image.repository }}:{{ .Values.sparkApplication.image.tag }}"
+  imagePullPolicy: {{ .Values.sparkApplication.image.pullPolicy | quote }}
+  mainApplicationFile: {{ .Values.sparkApplication.mainApplicationFile | quote }}
+{{- with .Values.sparkApplication.arguments }}
+  arguments:
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- with .Values.sparkApplication.sparkConf }}
+  sparkConf:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  restartPolicy:
+{{ toYaml .Values.sparkApplication.restartPolicy | indent 4 }}
+  driver:
+    cores: {{ .Values.sparkApplication.driver.cores }}
+    coreLimit: {{ .Values.sparkApplication.driver.coreLimit | quote }}
+    memory: {{ .Values.sparkApplication.driver.memory | quote }}
+    serviceAccount: {{ .Values.sparkApplication.driver.serviceAccount | quote }}
+    labels:
+{{ toYaml .Values.sparkApplication.driver.labels | indent 6 }}
+{{- with .Values.sparkApplication.driver.env }}
+    env:
+{{ toYaml . | indent 6 }}
+{{- end }}
+  executor:
+    instances: {{ .Values.sparkApplication.executor.instances }}
+    cores: {{ .Values.sparkApplication.executor.cores }}
+    coreLimit: {{ .Values.sparkApplication.executor.coreLimit | quote }}
+    memory: {{ .Values.sparkApplication.executor.memory | quote }}
+    deleteOnTermination: {{ .Values.sparkApplication.executor.deleteOnTermination }}
+    labels:
+{{ toYaml .Values.sparkApplication.executor.labels | indent 6 }}
+{{- end }}

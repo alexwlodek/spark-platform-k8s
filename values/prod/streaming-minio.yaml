@@ -1,0 +1,2 @@
+# PROD placeholder: replace MinIO with Amazon S3.
+# Keep empty for now and override storage endpoints in values/prod/streaming-pipeline.yaml.

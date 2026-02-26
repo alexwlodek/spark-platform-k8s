@@ -1,0 +1,91 @@
+generator:
+  enabled: true
+  replicas: 1
+  image:
+    repository: ""
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  orderRatePerSecond: 20
+  minAmount: 10
+  maxAmount: 500
+  kafka:
+    bootstrapServers: streaming-kafka.apps.svc.cluster.local:9092
+    topic: orders
+    acks: "1"
+    compressionType: none
+  resources: {}
+
+sparkApplication:
+  enabled: true
+  labels: {}
+  annotations: {}
+  type: Python
+  mode: cluster
+  sparkVersion: "3.5.2"
+  pythonVersion: "3"
+  mainApplicationFile: local:///opt/spark/work-dir/streaming_job.py
+  image:
+    repository: ""
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  arguments: []
+  sparkConf: {}
+  restartPolicy:
+    type: OnFailure
+    onFailureRetries: 3
+    onFailureRetryInterval: 30
+    onSubmissionFailureRetries: 5
+    onSubmissionFailureRetryInterval: 20
+  driver:
+    cores: 1
+    coreLimit: "1200m"
+    memory: "1024m"
+    serviceAccount: spark-operator-spark
+    labels:
+      streaming-query: orders-streaming
+    env: []
+  executor:
+    instances: 1
+    cores: 1
+    coreLimit: "1200m"
+    memory: "1024m"
+    deleteOnTermination: true
+    labels:
+      streaming-query: orders-streaming
+
+metrics:
+  podMonitor:
+    enabled: true
+    namespace: ""
+    labels: {}
+    interval: 15s
+    scrapeTimeout: 10s
+    selector:
+      sparkRole: driver
+      streamingQuery: orders-streaming
+    endpoints:
+      - path: /metrics/prometheus
+        targetPort: 4040
+      - path: /metrics/executors/prometheus
+        targetPort: 4040
+      - path: /metrics
+        targetPort: 8090
+
+grafanaDashboard:
+  enabled: true
+  namespace: ""
+  labels: {}
+
+prometheusRule:
+  enabled: true
+  namespace: ""
+  labels: {}
+  queryLabel: orders_revenue_per_minute
+  alerts:
+    jobFailed:
+      enabled: true
+      for: 5m
+    lagGrowing:
+      enabled: true
+      for: 10m
+      thresholdSeconds: 120

@@ -1,0 +1,13 @@
+generator:
+  image:
+    pullPolicy: Always
+  orderRatePerSecond: 15
+
+sparkApplication:
+  image:
+    pullPolicy: Always
+  driver:
+    memory: "768m"
+  executor:
+    instances: 1
+    memory: "768m"

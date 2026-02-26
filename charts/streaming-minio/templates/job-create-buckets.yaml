@@ -1,0 +1,42 @@
+{{- if .Values.buckets }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "streaming-minio.fullname" . }}-buckets
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "streaming-minio.labels" . | indent 4 }}
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+{{ include "streaming-minio.labels" . | indent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: create-buckets
+          image: "{{ .Values.mcImage.repository }}:{{ .Values.mcImage.tag }}"
+          imagePullPolicy: {{ .Values.mcImage.pullPolicy | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              until mc alias set local http://{{ include "streaming-minio.fullname" . }}:{{ .Values.service.apiPort }} "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
+                echo "waiting for minio..."
+                sleep 2
+              done
+{{- range .Values.buckets }}
+              mc mb --ignore-existing "local/{{ . }}"
+{{- end }}
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streaming-minio.fullname" . }}
+                  key: root-user
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streaming-minio.fullname" . }}
+                  key: root-password
+{{- end }}

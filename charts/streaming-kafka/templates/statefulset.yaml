@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "streaming-kafka.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "streaming-kafka.labels" . | indent 4 }}
+spec:
+  serviceName: {{ include "streaming-kafka.fullname" . }}-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/name: {{ include "streaming-kafka.name" . | quote }}
+  template:
+    metadata:
+      labels:
+{{ include "streaming-kafka.labels" . | indent 8 }}
+    spec:
+      securityContext:
+        fsGroup: 1001
+      containers:
+        - name: kafka
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          ports:
+            - name: kafka
+              containerPort: {{ .Values.service.port }}
+            - name: controller
+              containerPort: {{ .Values.service.controllerPort }}
+          env:
+            - name: KAFKA_ENABLE_KRAFT
+              value: "yes"
+            - name: ALLOW_PLAINTEXT_LISTENER
+              value: "yes"
+            - name: KAFKA_KRAFT_CLUSTER_ID
+              value: {{ .Values.kafka.clusterId | quote }}
+            - name: KAFKA_CFG_NODE_ID
+              value: "0"
+            - name: KAFKA_CFG_PROCESS_ROLES
+              value: "broker,controller"
+            - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+            - name: KAFKA_CFG_LISTENERS
+              value: "PLAINTEXT://:{{ .Values.service.port }},CONTROLLER://:{{ .Values.service.controllerPort }}"
+            - name: KAFKA_CFG_ADVERTISED_LISTENERS
+              value: 'PLAINTEXT://{{ include "streaming-kafka.bootstrapHost" . }}:{{ .Values.service.port }}'
+            - name: KAFKA_CFG_CONTROLLER_LISTENER_NAMES
+              value: "CONTROLLER"
+            - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+              value: "PLAINTEXT"
+            - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+              value: '0@{{ include "streaming-kafka.controllerHost" . }}:{{ .Values.service.controllerPort }}'
+            - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "1"
+            - name: KAFKA_CFG_NUM_PARTITIONS
+              value: {{ .Values.kafka.numPartitions | quote }}
+            - name: KAFKA_CFG_LOG_RETENTION_HOURS
+              value: {{ .Values.kafka.logRetentionHours | quote }}
+            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+              value: {{ ternary "true" "false" .Values.kafka.autoCreateTopicsEnable | quote }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          livenessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /bitnami/kafka
+{{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+{{- with .Values.persistence.storageClassName }}
+        storageClassName: {{ . | quote }}
+{{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+{{- else }}
+      volumes:
+        - name: data
+          emptyDir: {}
+{{- end }}

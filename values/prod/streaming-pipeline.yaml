@@ -1,0 +1,21 @@
+# PROD overrides example (MSK + S3):
+# generator:
+#   kafka:
+#     bootstrapServers: b-1.msk.example.amazonaws.com:9092,b-2.msk.example.amazonaws.com:9092
+# sparkApplication:
+#   arguments:
+#     - --kafka-bootstrap-servers
+#     - b-1.msk.example.amazonaws.com:9092,b-2.msk.example.amazonaws.com:9092
+#     - --kafka-topic
+#     - orders
+#     - --window-duration
+#     - 1 minute
+#     - --watermark-delay
+#     - 2 minutes
+#     - --checkpoint-location
+#     - s3a://my-prod-lake/checkpoints/orders-v1
+#     - --output-path
+#     - s3a://my-prod-lake/silver/orders_per_minute
+#   sparkConf:
+#     spark.hadoop.fs.s3a.endpoint: s3.amazonaws.com
+#     spark.hadoop.fs.s3a.path.style.access: "false"

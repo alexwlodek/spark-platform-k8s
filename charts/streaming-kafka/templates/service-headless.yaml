@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "streaming-kafka.fullname" . }}-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "streaming-kafka.labels" . | indent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - name: kafka
+      port: {{ .Values.service.port }}
+      targetPort: kafka
+    - name: controller
+      port: {{ .Values.service.controllerPort }}
+      targetPort: controller
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/name: {{ include "streaming-kafka.name" . | quote }}

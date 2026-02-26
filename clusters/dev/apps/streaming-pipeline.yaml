@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: streaming-pipeline
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "35"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      path: charts/streaming-pipeline
+      helm:
+        releaseName: streaming-pipeline
+        valueFiles:
+          - $values/values/common/streaming-pipeline.yaml
+          - $values/values/dev/streaming-pipeline.yaml
+          - $values/values/dev/streaming-generator-image.yaml
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

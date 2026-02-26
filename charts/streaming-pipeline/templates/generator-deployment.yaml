@@ -1,0 +1,46 @@
+{{- if .Values.generator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "streaming-pipeline.fullname" . }}-generator
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "streaming-pipeline.labels" . | indent 4 }}
+    app.kubernetes.io/component: generator
+spec:
+  replicas: {{ .Values.generator.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/name: {{ include "streaming-pipeline.name" . | quote }}
+      app.kubernetes.io/component: generator
+  template:
+    metadata:
+      labels:
+{{ include "streaming-pipeline.labels" . | indent 8 }}
+        app.kubernetes.io/component: generator
+    spec:
+      containers:
+        - name: order-generator
+          image: "{{ required "generator.image.repository must be set" .Values.generator.image.repository }}:{{ .Values.generator.image.tag }}"
+          imagePullPolicy: {{ .Values.generator.image.pullPolicy | quote }}
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.generator.kafka.bootstrapServers | quote }}
+            - name: KAFKA_TOPIC
+              value: {{ .Values.generator.kafka.topic | quote }}
+            - name: KAFKA_ACKS
+              value: {{ .Values.generator.kafka.acks | quote }}
+            - name: KAFKA_COMPRESSION_TYPE
+              value: {{ .Values.generator.kafka.compressionType | quote }}
+            - name: ORDER_RATE_PER_SECOND
+              value: {{ .Values.generator.orderRatePerSecond | quote }}
+            - name: ORDER_MIN_AMOUNT
+              value: {{ .Values.generator.minAmount | quote }}
+            - name: ORDER_MAX_AMOUNT
+              value: {{ .Values.generator.maxAmount | quote }}
+{{- with .Values.generator.resources }}
+          resources:
+{{ toYaml . | indent 12 }}
+{{- end }}
+{{- end }}

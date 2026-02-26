@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "streaming-minio.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "streaming-minio.labels" . | indent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/name: {{ include "streaming-minio.name" . | quote }}
+  template:
+    metadata:
+      labels:
+{{ include "streaming-minio.labels" . | indent 8 }}
+    spec:
+      containers:
+        - name: minio
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          command: ["minio"]
+          args: ["server", "/data", "--console-address", ":{{ .Values.service.consolePort }}"]
+          ports:
+            - name: api
+              containerPort: {{ .Values.service.apiPort }}
+            - name: console
+              containerPort: {{ .Values.service.consolePort }}
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streaming-minio.fullname" . }}
+                  key: root-user
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "streaming-minio.fullname" . }}
+                  key: root-password
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: api
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+{{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "streaming-minio.fullname" . }}
+{{- else }}
+        - name: data
+          emptyDir: {}
+{{- end }}

@@ -1,0 +1,3 @@
+# PROD placeholder: replace in-cluster Kafka with managed service (MSK/Kinesis).
+# This file intentionally stays minimal because prod topology is expected
+# to consume external broker endpoints via streaming-pipeline values.

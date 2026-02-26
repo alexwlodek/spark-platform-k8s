@@ -40,6 +40,7 @@ By default bootstrap installs Argo CD via pinned Helm chart version (`7.7.0`) an
 
 - `ghcr.io/kubeflow/spark-operator/controller:2.4.0`
 - `ghcr.io/alexwlodek/spark-demo-job:latest`
+- `ghcr.io/alexwlodek/order-generator:latest`
 
 Tuning:
 
@@ -90,6 +91,33 @@ scripts/dev-kibana-ui.sh
 - `apps`
 - `spark-operator`
 
+## Streaming pipeline (GitOps, DEV)
+
+DEV stack adds production-like near-real-time path:
+
+- `streaming-kafka` (single-node Kafka in-cluster)
+- `streaming-minio` (S3-compatible object storage for checkpoints + Parquet)
+- `streaming-pipeline` (orders generator + Spark Structured Streaming + alerts + dashboard)
+
+Main assets:
+
+- generator code: `apps/order-generator/generator.py`
+- streaming Spark code: `apps/spark-job/streaming_job.py`
+- charts: `charts/streaming-kafka`, `charts/streaming-minio`, `charts/streaming-pipeline`
+- Argo apps: `clusters/dev/apps/streaming-*.yaml`
+- values:
+  - common: `values/common/streaming-*.yaml`
+  - dev: `values/dev/streaming-*.yaml`
+  - prod placeholders: `values/prod/streaming-*.yaml`
+
+Spark job performs:
+
+- Kafka ingest (`orders` topic)
+- event-time windowing + watermark
+- aggregations (`events`, `revenue`)
+- checkpointing and Parquet sink to MinIO (`s3a://streaming-lake/...`)
+- Prometheus metrics export (`inputRowsPerSecond`, `processedRowsPerSecond`, batch duration, lag, failures)
+
 ## CI/CD for Spark image
 
 Workflow: `.github/workflows/spark-job-image.yml` (GHCR)
@@ -97,5 +125,14 @@ Workflow: `.github/workflows/spark-job-image.yml` (GHCR)
 Flow:
 
 1. Build and push image to GitHub Container Registry (`ghcr.io`) with immutable tag `sha-<12 chars>`.
-2. Create PR that updates `values/dev/demo-apps.yaml` with new `image.repository` and `image.tag`.
-3. Merge PR and let Argo CD auto-sync apply new image.
+2. Push floating tags (`main`, `latest`) for quick DEV rollout.
+
+## CI/CD for generator image
+
+Workflow: `.github/workflows/order-generator-image.yml` (GHCR)
+
+Flow:
+
+1. Build and push generator image to GHCR with immutable tag `sha-<12 chars>`.
+2. Auto-update `values/dev/streaming-generator-image.yaml` in `main`.
+3. Argo CD auto-sync rolls out new generator tag in DEV.

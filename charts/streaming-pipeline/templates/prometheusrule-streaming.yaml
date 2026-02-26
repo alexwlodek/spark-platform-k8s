@@ -1,0 +1,48 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "streaming-pipeline.fullname" . }}-alerts
+  namespace: {{ default .Release.Namespace .Values.prometheusRule.namespace }}
+  labels:
+{{ include "streaming-pipeline.labels" . | indent 4 }}
+{{- with .Values.prometheusRule.labels }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  groups:
+    - name: {{ include "streaming-pipeline.fullname" . }}.streaming.recording
+      rules:
+        - record: streaming:input_rows_per_second
+          expr: avg(streaming_input_rows_per_second{query="{{ .Values.prometheusRule.queryLabel }}"})
+        - record: streaming:processed_rows_per_second
+          expr: avg(streaming_processed_rows_per_second{query="{{ .Values.prometheusRule.queryLabel }}"})
+        - record: streaming:batch_duration_ms
+          expr: avg(streaming_batch_duration_milliseconds{query="{{ .Values.prometheusRule.queryLabel }}"})
+        - record: streaming:query_lag_seconds
+          expr: max(streaming_query_lag_seconds{query="{{ .Values.prometheusRule.queryLabel }}"})
+        - record: streaming:failure_count_15m
+          expr: sum(increase(streaming_failure_count_total{query="{{ .Values.prometheusRule.queryLabel }}"}[15m]))
+    - name: {{ include "streaming-pipeline.fullname" . }}.streaming.alerts
+      rules:
+{{- if .Values.prometheusRule.alerts.jobFailed.enabled }}
+        - alert: StreamingJobFailed
+          expr: streaming:failure_count_15m > 0
+          for: {{ .Values.prometheusRule.alerts.jobFailed.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Structured Streaming job reported failures
+            description: Structured Streaming failure counter increased over last 15m.
+{{- end }}
+{{- if .Values.prometheusRule.alerts.lagGrowing.enabled }}
+        - alert: StreamingLagGrowing
+          expr: streaming:query_lag_seconds > {{ .Values.prometheusRule.alerts.lagGrowing.thresholdSeconds }} and deriv(streaming:query_lag_seconds[10m]) > 0
+          for: {{ .Values.prometheusRule.alerts.lagGrowing.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Structured Streaming lag is growing
+            description: Event-time lag is above {{ .Values.prometheusRule.alerts.lagGrowing.thresholdSeconds }}s and increasing.
+{{- end }}
+{{- end }}
