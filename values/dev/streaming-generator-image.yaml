@@ -1,5 +1,5 @@
 generator:
   image:
     repository: ghcr.io/alexwlodek/order-generator
-    tag: "sha-93cd12182861"
+    tag: "latest"
     pullPolicy: Always
