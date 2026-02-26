@@ -7,6 +7,16 @@ metadata:
     argocd.argoproj.io/sync-wave: "26"
 spec:
   project: platform
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: streaming-kafka
+      namespace: apps
+      jsonPointers:
+        - /spec/persistentVolumeClaimRetentionPolicy
+        - /spec/podManagementPolicy
+        - /spec/revisionHistoryLimit
+        - /spec/updateStrategy
   sources:
     - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
       targetRevision: main
