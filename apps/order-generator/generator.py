@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timezone
 
 from kafka import KafkaProducer
+from kafka.errors import KafkaError, KafkaTimeoutError, NoBrokersAvailable
 
 
 RUNNING = True
@@ -42,6 +43,24 @@ def make_event(min_amount: float, max_amount: float) -> dict[str, object]:
     }
 
 
+def build_producer(
+    bootstrap_servers: str,
+    acks: str,
+    compression_type: str,
+) -> KafkaProducer:
+    return KafkaProducer(
+        bootstrap_servers=[s.strip() for s in bootstrap_servers.split(",") if s.strip()],
+        acks=acks,
+        compression_type=compression_type if compression_type != "none" else None,
+        linger_ms=10,
+        retries=50,
+        retry_backoff_ms=500,
+        max_block_ms=10000,
+        request_timeout_ms=30000,
+        value_serializer=lambda payload: json.dumps(payload).encode("utf-8"),
+    )
+
+
 def main() -> None:
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
@@ -54,17 +73,11 @@ def main() -> None:
     min_amount = env_float("ORDER_MIN_AMOUNT", 10.0)
     max_amount = env_float("ORDER_MAX_AMOUNT", 500.0)
 
-    producer = KafkaProducer(
-        bootstrap_servers=[s.strip() for s in bootstrap_servers.split(",") if s.strip()],
-        acks=acks,
-        compression_type=compression_type if compression_type != "none" else None,
-        linger_ms=10,
-        retries=20,
-        value_serializer=lambda payload: json.dumps(payload).encode("utf-8"),
-    )
+    producer = build_producer(bootstrap_servers, acks, compression_type)
 
     interval = 1.0 / rate
     sent = 0
+    failed = 0
     print(
         "[order-generator] started "
         f"topic={topic} bootstrap_servers={bootstrap_servers} rate={rate:.2f}/s amount={min_amount}-{max_amount}"
@@ -73,11 +86,27 @@ def main() -> None:
     while RUNNING:
         started = time.time()
         event = make_event(min_amount, max_amount)
-        producer.send(topic, event)
-        sent += 1
+        try:
+            send_result = producer.send(topic, event)
+            # Block for broker acknowledgement to keep producer buffer bounded in DEV.
+            send_result.get(timeout=10)
+            sent += 1
+        except (KafkaTimeoutError, NoBrokersAvailable, KafkaError) as exc:
+            failed += 1
+            print(f"[order-generator] send failed error={exc.__class__.__name__} detail={exc} failed={failed}")
+            try:
+                producer.close(timeout=2)
+            except Exception:
+                pass
+            time.sleep(2)
+            producer = build_producer(bootstrap_servers, acks, compression_type)
+            continue
 
         if sent % 100 == 0:
-            print(f"[order-generator] sent={sent} last_order={event['order_id']} amount={event['amount']}")
+            print(
+                f"[order-generator] sent={sent} failed={failed} "
+                f"last_order={event['order_id']} amount={event['amount']}"
+            )
 
         sleep_for = interval - (time.time() - started)
         if sleep_for > 0:
@@ -85,7 +114,7 @@ def main() -> None:
 
     producer.flush(timeout=10)
     producer.close()
-    print(f"[order-generator] shutdown complete sent_total={sent}")
+    print(f"[order-generator] shutdown complete sent_total={sent} failed_total={failed}")
 
 
 if __name__ == "__main__":

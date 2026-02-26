@@ -1,7 +1,7 @@
 generator:
   image:
     pullPolicy: Always
-  orderRatePerSecond: 15
+  orderRatePerSecond: 5
 
 sparkApplication:
   image:
