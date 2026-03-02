@@ -1,0 +1,3 @@
+# PROD placeholder:
+# Prefer managed PostgreSQL (RDS/Cloud SQL/Azure Database for PostgreSQL)
+# for Nessie metadata instead of in-cluster StatefulSet.

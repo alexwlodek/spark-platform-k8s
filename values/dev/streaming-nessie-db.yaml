@@ -1,0 +1,10 @@
+persistence:
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 192Mi
+  limits:
+    cpu: 400m
+    memory: 768Mi

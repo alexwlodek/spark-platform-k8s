@@ -1,0 +1,3 @@
+# PROD placeholder:
+# Keep Nessie externalized/highly-available and connect it to managed
+# PostgreSQL. Restrict access via ingress/authn/authz and TLS.

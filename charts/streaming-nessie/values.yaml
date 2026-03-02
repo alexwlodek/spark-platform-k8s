@@ -1,0 +1,39 @@
+image:
+  repository: ghcr.io/projectnessie/nessie
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 19120
+
+nessie:
+  versionStoreType: JDBC2
+  defaultBranch: main
+
+database:
+  host: streaming-nessie-db.apps.svc.cluster.local
+  port: 5432
+  name: nessie
+  username: nessie
+  password: nessie123
+
+resources:
+  requests:
+    cpu: 150m
+    memory: 512Mi
+  limits:
+    cpu: 600m
+    memory: 1536Mi
+
+probes:
+  liveness:
+    initialDelaySeconds: 20
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 6
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 12

@@ -1,0 +1,38 @@
+image:
+  repository: postgres
+  tag: "16"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 5432
+
+auth:
+  database: nessie
+  username: nessie
+  password: nessie123
+  postgresPassword: postgres123
+
+persistence:
+  enabled: true
+  size: 8Gi
+  storageClassName: ""
+
+resources:
+  requests:
+    cpu: 150m
+    memory: 256Mi
+  limits:
+    cpu: 600m
+    memory: 1Gi
+
+probes:
+  liveness:
+    initialDelaySeconds: 20
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 6
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 12

@@ -97,6 +97,8 @@ DEV stack adds production-like near-real-time path:
 
 - `streaming-kafka` (single-node Kafka in-cluster)
 - `streaming-minio` (S3-compatible object storage for checkpoints + Parquet)
+- `streaming-nessie-db` (PostgreSQL metadata backend for Nessie)
+- `streaming-nessie` (Iceberg catalog service)
 - `streaming-trino` (single-node SQL engine for ad-hoc querying and BI connectivity)
 - `streaming-pipeline` (orders generator + Spark Structured Streaming + alerts + dashboard)
 
@@ -104,7 +106,7 @@ Main assets:
 
 - generator code: `apps/order-generator/generator.py`
 - streaming Spark code: `apps/spark-job/streaming_job.py`
-- charts: `charts/streaming-kafka`, `charts/streaming-minio`, `charts/streaming-trino`, `charts/streaming-pipeline`
+- charts: `charts/streaming-kafka`, `charts/streaming-minio`, `charts/streaming-nessie-db`, `charts/streaming-nessie`, `charts/streaming-trino`, `charts/streaming-pipeline`
 - Argo apps: `clusters/dev/apps/streaming-*.yaml`
 - values:
   - common: `values/common/streaming-*.yaml`
