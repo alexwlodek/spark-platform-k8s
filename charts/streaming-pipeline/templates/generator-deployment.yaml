@@ -39,6 +39,8 @@ spec:
               value: {{ .Values.generator.minAmount | quote }}
             - name: ORDER_MAX_AMOUNT
               value: {{ .Values.generator.maxAmount | quote }}
+            - name: PYTHONUNBUFFERED
+              value: "1"
 {{- with .Values.generator.resources }}
           resources:
 {{ toYaml . | indent 12 }}

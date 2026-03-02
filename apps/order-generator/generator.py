@@ -48,9 +48,18 @@ def build_producer(
     acks: str,
     compression_type: str,
 ) -> KafkaProducer:
+    normalized_acks: int | str
+    if acks.strip().lower() == "all":
+        normalized_acks = "all"
+    else:
+        try:
+            normalized_acks = int(acks)
+        except ValueError as exc:
+            raise ValueError(f"Invalid KAFKA_ACKS value: {acks!r}. Use 'all' or an integer.") from exc
+
     return KafkaProducer(
         bootstrap_servers=[s.strip() for s in bootstrap_servers.split(",") if s.strip()],
-        acks=acks,
+        acks=normalized_acks,
         compression_type=compression_type if compression_type != "none" else None,
         linger_ms=10,
         retries=50,

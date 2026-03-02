@@ -11,7 +11,7 @@ generator:
   kafka:
     bootstrapServers: streaming-kafka.apps.svc.cluster.local:9092
     topic: orders
-    acks: "1"
+    acks: all
     compressionType: none
   resources:
     requests:
