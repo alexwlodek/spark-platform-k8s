@@ -20,18 +20,19 @@ trino:
       connector.name=tpch
     memory: |
       connector.name=memory
-  # Example when metastore is available (future step):
-  # additionalCatalogs:
-  #   hive_minio: |
-  #     connector.name=hive
-  #     hive.metastore.uri=thrift://hive-metastore.apps.svc.cluster.local:9083
-  #     fs.native-s3.enabled=true
-  #     s3.endpoint=http://streaming-minio.apps.svc.cluster.local:9000
-  #     s3.path-style-access=true
-  #     s3.aws-access-key=minio
-  #     s3.aws-secret-key=minio123
-  #     s3.region=us-east-1
-  additionalCatalogs: {}
+  additionalCatalogs:
+    iceberg_nessie: |
+      connector.name=iceberg
+      iceberg.catalog.type=nessie
+      iceberg.nessie-catalog.uri=http://streaming-nessie.apps.svc.cluster.local:19120/api/v2
+      iceberg.nessie-catalog.ref=main
+      iceberg.nessie-catalog.default-warehouse-dir=s3://streaming-lake/iceberg
+      fs.native-s3.enabled=true
+      s3.endpoint=http://streaming-minio.apps.svc.cluster.local:9000
+      s3.path-style-access=true
+      s3.region=us-east-1
+      s3.aws-access-key=minio
+      s3.aws-secret-key=minio123
 
 persistence:
   enabled: false
