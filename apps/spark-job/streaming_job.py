@@ -42,7 +42,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--window-duration", default="1 minute")
     parser.add_argument("--watermark-delay", default="2 minutes")
     parser.add_argument("--checkpoint-location", required=True)
-    parser.add_argument("--output-path", required=True)
+    parser.add_argument("--output-path", default=None)
+    parser.add_argument("--output-table", default=None)
     parser.add_argument("--query-name", default="orders_revenue_per_minute")
     parser.add_argument("--trigger-processing-time", default="10 seconds")
     parser.add_argument("--metrics-port", type=int, default=8090)
@@ -87,7 +88,7 @@ def update_stream_metrics(query_name: str, progress: dict[str, object] | None) -
     QUERY_LAG_SECONDS.labels(query=query_name).set(lag_seconds)
 
 
-def write_batch(output_path: str):
+def write_batch_to_path(output_path: str):
     def _write(df: DataFrame, batch_id: int) -> None:
         if df.rdd.isEmpty():
             return
@@ -101,11 +102,43 @@ def write_batch(output_path: str):
     return _write
 
 
+def ensure_iceberg_table(spark: SparkSession, table_name: str) -> None:
+    # Auto-create schema/table so first deployment can start writing immediately.
+    parts = table_name.split(".")
+    if len(parts) >= 2:
+        schema_name = ".".join(parts[:-1])
+        spark.sql(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
+
+    spark.sql(
+        f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+          window_start TIMESTAMP,
+          window_end TIMESTAMP,
+          events BIGINT,
+          revenue DOUBLE
+        ) USING iceberg
+        """
+    )
+
+
+def write_batch_to_table(output_table: str):
+    def _write(df: DataFrame, _batch_id: int) -> None:
+        if df.rdd.isEmpty():
+            return
+
+        df.writeTo(output_table).append()
+
+    return _write
+
+
 def main() -> None:
     args = parse_args()
     start_http_server(args.metrics_port)
 
     spark = SparkSession.builder.appName("orders-streaming").getOrCreate()
+
+    if not args.output_path and not args.output_table:
+        raise ValueError("Either --output-path or --output-table must be provided.")
 
     schema = StructType(
         [
@@ -152,10 +185,19 @@ def main() -> None:
         )
     )
 
+    sink_description: str
+    if args.output_table:
+        ensure_iceberg_table(spark, args.output_table)
+        batch_writer = write_batch_to_table(args.output_table)
+        sink_description = f"output_table={args.output_table}"
+    else:
+        batch_writer = write_batch_to_path(args.output_path)
+        sink_description = f"output_path={args.output_path}"
+
     query = (
         aggregated.writeStream.outputMode("append")
         .queryName(args.query_name)
-        .foreachBatch(write_batch(args.output_path))
+        .foreachBatch(batch_writer)
         .option("checkpointLocation", args.checkpoint_location)
         .trigger(processingTime=args.trigger_processing_time)
         .start()
@@ -163,7 +205,7 @@ def main() -> None:
 
     print(
         "[orders-streaming] started "
-        f"query={args.query_name} topic={args.kafka_topic} checkpoint={args.checkpoint_location} output={args.output_path}"
+        f"query={args.query_name} topic={args.kafka_topic} checkpoint={args.checkpoint_location} {sink_description}"
     )
 
     try:
