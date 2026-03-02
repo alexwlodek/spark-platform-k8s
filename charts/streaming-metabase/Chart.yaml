@@ -1,0 +1,6 @@
+apiVersion: v2
+name: streaming-metabase
+description: Metabase UI for BI dashboards on top of Trino
+type: application
+version: 0.1.0
+appVersion: "latest"
