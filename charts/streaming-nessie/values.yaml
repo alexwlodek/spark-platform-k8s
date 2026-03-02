@@ -6,6 +6,7 @@ image:
 service:
   type: ClusterIP
   port: 19120
+  managementPort: 9000
 
 nessie:
   versionStoreType: JDBC2

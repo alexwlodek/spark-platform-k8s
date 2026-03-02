@@ -23,9 +23,13 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
+            - name: management
+              containerPort: {{ .Values.service.managementPort }}
           env:
             - name: QUARKUS_HTTP_PORT
               value: {{ .Values.service.port | quote }}
+            - name: QUARKUS_MANAGEMENT_PORT
+              value: {{ .Values.service.managementPort | quote }}
             - name: NESSIE_VERSION_STORE_TYPE
               value: {{ .Values.nessie.versionStoreType | quote }}
             - name: NESSIE_VERSION_STORE_DEFAULT_BRANCH
@@ -49,7 +53,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /q/health/live
-              port: http
+              port: management
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
             timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
@@ -57,7 +61,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /q/health/ready
-              port: http
+              port: management
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
             timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
