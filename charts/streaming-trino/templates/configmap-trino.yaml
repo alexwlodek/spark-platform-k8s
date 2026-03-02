@@ -12,7 +12,6 @@ data:
     http-server.http.port={{ .Values.service.port }}
     query.max-memory={{ .Values.trino.config.queryMaxMemory }}
     query.max-memory-per-node={{ .Values.trino.config.queryMaxMemoryPerNode }}
-    discovery-server.enabled=true
     discovery.uri=http://{{ include "streaming-trino.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
   jvm.config: |
     -server
