@@ -54,4 +54,8 @@ spec:
     deleteOnTermination: {{ .Values.sparkApplication.executor.deleteOnTermination }}
     labels:
 {{ toYaml .Values.sparkApplication.executor.labels | indent 6 }}
+{{- with .Values.sparkApplication.executor.env }}
+    env:
+{{ toYaml . | indent 6 }}
+{{- end }}
 {{- end }}

@@ -39,7 +39,7 @@ def make_event(min_amount: float, max_amount: float) -> dict[str, object]:
         "items": items,
         "amount": amount,
         "currency": "USD",
-        "region": random.choice(["us-east-1", "us-west-2", "eu-west-1"]),
+        "region": random.choice(["eu-central-1", "us-west-2", "eu-west-1"]),
     }
 
 

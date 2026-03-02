@@ -56,6 +56,7 @@ sparkApplication:
     deleteOnTermination: true
     labels:
       streaming-query: orders-streaming
+    env: []
 
 metrics:
   podMonitor:

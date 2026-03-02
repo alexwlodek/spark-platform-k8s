@@ -69,7 +69,8 @@ sparkApplication:
     spark.sql.catalog.iceberg_nessie.io-impl: org.apache.iceberg.aws.s3.S3FileIO
     spark.sql.catalog.iceberg_nessie.s3.endpoint: http://streaming-minio.apps.svc.cluster.local:9000
     spark.sql.catalog.iceberg_nessie.s3.path-style-access: "true"
-    spark.sql.catalog.iceberg_nessie.s3.region: us-east-1
+    spark.sql.catalog.iceberg_nessie.s3.region: eu-central-1
+    spark.sql.catalog.iceberg_nessie.client.region: eu-central-1
     spark.sql.catalog.iceberg_nessie.s3.access-key-id: minio
     spark.sql.catalog.iceberg_nessie.s3.secret-access-key: minio123
     spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
@@ -99,6 +100,10 @@ sparkApplication:
     env:
       - name: PYTHONUNBUFFERED
         value: "1"
+      - name: AWS_REGION
+        value: "eu-central-1"
+      - name: AWS_DEFAULT_REGION
+        value: "eu-central-1"
   executor:
     instances: 1
     cores: 1
@@ -107,6 +112,11 @@ sparkApplication:
     deleteOnTermination: true
     labels:
       streaming-query: orders-streaming
+    env:
+      - name: AWS_REGION
+        value: "eu-central-1"
+      - name: AWS_DEFAULT_REGION
+        value: "eu-central-1"
 
 metrics:
   podMonitor:
