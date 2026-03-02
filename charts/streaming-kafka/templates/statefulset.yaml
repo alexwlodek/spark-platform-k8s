@@ -37,6 +37,8 @@ spec:
               value: {{ .Values.kafka.clusterId | quote }}
             - name: KAFKA_CFG_NODE_ID
               value: "0"
+            - name: KAFKA_CFG_BROKER_ID
+              value: "0"
             - name: KAFKA_CFG_PROCESS_ROLES
               value: "broker,controller"
             - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
