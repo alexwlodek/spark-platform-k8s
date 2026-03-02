@@ -77,6 +77,10 @@ sparkApplication:
     coreLimit: "1200m"
     memory: "1024m"
     serviceAccount: spark-operator-spark
+    ports:
+      - name: metrics
+        containerPort: 8090
+        protocol: TCP
     labels:
       streaming-query: orders-streaming
     env:
@@ -103,8 +107,6 @@ metrics:
       sparkRole: driver
       streamingQuery: orders-streaming
     endpoints:
-      - path: /metrics/prometheus
-        targetPort: 4040
       - path: /metrics/executors/prometheus
         targetPort: 4040
       - path: /metrics

@@ -36,6 +36,10 @@ spec:
     coreLimit: {{ .Values.sparkApplication.driver.coreLimit | quote }}
     memory: {{ .Values.sparkApplication.driver.memory | quote }}
     serviceAccount: {{ .Values.sparkApplication.driver.serviceAccount | quote }}
+{{- with .Values.sparkApplication.driver.ports }}
+    ports:
+{{ toYaml . | indent 6 }}
+{{- end }}
     labels:
 {{ toYaml .Values.sparkApplication.driver.labels | indent 6 }}
 {{- with .Values.sparkApplication.driver.env }}
