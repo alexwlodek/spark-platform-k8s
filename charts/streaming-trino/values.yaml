@@ -1,0 +1,51 @@
+image:
+  repository: trinodb/trino
+  tag: "477"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+trino:
+  nodeEnvironment: dev
+  dataDir: /data/trino
+  jvm:
+    maxHeapSize: 1G
+  config:
+    queryMaxMemory: 1GB
+    queryMaxMemoryPerNode: 512MB
+  catalogs:
+    tpch: |
+      connector.name=tpch
+    memory: |
+      connector.name=memory
+  # additionalCatalogs can be used to override or append catalogs from values/common|dev.
+  additionalCatalogs: {}
+
+persistence:
+  enabled: false
+  size: 8Gi
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+
+resources:
+  requests:
+    cpu: 300m
+    memory: 768Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+probes:
+  liveness:
+    initialDelaySeconds: 20
+    periodSeconds: 20
+    timeoutSeconds: 2
+    failureThreshold: 6
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 12

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: streaming-trino
+description: Single-node Trino SQL engine for streaming analytics in DEV
+type: application
+version: 0.1.0
+appVersion: "477"

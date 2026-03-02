@@ -1,0 +1,3 @@
+# PROD placeholder:
+# Consider managed query engines (Athena/BigQuery/Snowflake/Databricks SQL)
+# or HA Trino deployment with external catalog (Nessie/Glue/Hive Metastore).
