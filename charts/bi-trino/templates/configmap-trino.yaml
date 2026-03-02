@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bi-trino.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "bi-trino.labels" . | indent 4 }}
+data:
+  config.properties: |
+    coordinator=true
+    node-scheduler.include-coordinator=true
+    http-server.http.port={{ .Values.service.port }}
+    query.max-memory={{ .Values.trino.config.queryMaxMemory }}
+    query.max-memory-per-node={{ .Values.trino.config.queryMaxMemoryPerNode }}
+    discovery.uri=http://{{ include "bi-trino.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+  jvm.config: |
+    -server
+    -Xmx{{ .Values.trino.jvm.maxHeapSize }}
+    -XX:+UseG1GC
+    -XX:+ExitOnOutOfMemoryError
+    -XX:+ExplicitGCInvokesConcurrent
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:ReservedCodeCacheSize=512M
+  node.properties: |
+    node.environment={{ .Values.trino.nodeEnvironment }}
+    node.id={{ include "bi-trino.fullname" . }}
+    data-dir={{ .Values.trino.dataDir }}

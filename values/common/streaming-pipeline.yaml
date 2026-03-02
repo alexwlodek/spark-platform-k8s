@@ -62,19 +62,19 @@ sparkApplication:
     spark.sql.extensions: org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
     spark.sql.catalog.iceberg_nessie: org.apache.iceberg.spark.SparkCatalog
     spark.sql.catalog.iceberg_nessie.catalog-impl: org.apache.iceberg.nessie.NessieCatalog
-    spark.sql.catalog.iceberg_nessie.uri: http://streaming-nessie.apps.svc.cluster.local:19120/api/v2
+    spark.sql.catalog.iceberg_nessie.uri: http://storage-nessie.apps.svc.cluster.local:19120/api/v2
     spark.sql.catalog.iceberg_nessie.ref: main
     spark.sql.catalog.iceberg_nessie.authentication.type: NONE
     spark.sql.catalog.iceberg_nessie.warehouse: s3://streaming-lake/iceberg
     spark.sql.catalog.iceberg_nessie.io-impl: org.apache.iceberg.aws.s3.S3FileIO
-    spark.sql.catalog.iceberg_nessie.s3.endpoint: http://streaming-minio.apps.svc.cluster.local:9000
+    spark.sql.catalog.iceberg_nessie.s3.endpoint: http://storage-minio.apps.svc.cluster.local:9000
     spark.sql.catalog.iceberg_nessie.s3.path-style-access: "true"
     spark.sql.catalog.iceberg_nessie.s3.region: eu-central-1
     spark.sql.catalog.iceberg_nessie.client.region: eu-central-1
     spark.sql.catalog.iceberg_nessie.s3.access-key-id: minio
     spark.sql.catalog.iceberg_nessie.s3.secret-access-key: minio123
     spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
-    spark.hadoop.fs.s3a.endpoint: http://streaming-minio.apps.svc.cluster.local:9000
+    spark.hadoop.fs.s3a.endpoint: http://storage-minio.apps.svc.cluster.local:9000
     spark.hadoop.fs.s3a.path.style.access: "true"
     spark.hadoop.fs.s3a.connection.ssl.enabled: "false"
     spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider

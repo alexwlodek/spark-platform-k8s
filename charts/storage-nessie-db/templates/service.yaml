@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "storage-nessie-db.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "storage-nessie-db.labels" . | indent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: {{ .Values.service.port }}
+      targetPort: postgres
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/name: {{ include "storage-nessie-db.name" . | quote }}

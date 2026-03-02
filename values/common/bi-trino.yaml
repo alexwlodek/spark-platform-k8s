@@ -1,0 +1,62 @@
+image:
+  repository: trinodb/trino
+  tag: "477"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+trino:
+  nodeEnvironment: dev
+  dataDir: /data/trino
+  jvm:
+    maxHeapSize: 1G
+  config:
+    queryMaxMemory: 1GB
+    queryMaxMemoryPerNode: 512MB
+  catalogs:
+    tpch: |
+      connector.name=tpch
+    memory: |
+      connector.name=memory
+  additionalCatalogs:
+    iceberg_nessie: |
+      connector.name=iceberg
+      iceberg.catalog.type=nessie
+      iceberg.nessie-catalog.uri=http://storage-nessie.apps.svc.cluster.local:19120/api/v2
+      iceberg.nessie-catalog.ref=main
+      iceberg.nessie-catalog.default-warehouse-dir=s3://streaming-lake/iceberg
+      fs.native-s3.enabled=true
+      s3.endpoint=http://storage-minio.apps.svc.cluster.local:9000
+      s3.path-style-access=true
+      s3.region=eu-central-1
+      s3.aws-access-key=minio
+      s3.aws-secret-key=minio123
+
+persistence:
+  enabled: false
+  size: 8Gi
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+
+resources:
+  requests:
+    cpu: 300m
+    memory: 768Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+probes:
+  liveness:
+    initialDelaySeconds: 20
+    periodSeconds: 20
+    timeoutSeconds: 2
+    failureThreshold: 6
+  readiness:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 12

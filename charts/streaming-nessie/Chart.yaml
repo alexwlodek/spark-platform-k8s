@@ -1,6 +1,0 @@
-apiVersion: v2
-name: streaming-nessie
-description: Nessie catalog service for Iceberg metadata
-type: application
-version: 0.1.0
-appVersion: "latest"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CLUSTER_NAME="${CLUSTER_NAME:-spark-dev}"
+CLUSTER_NAME="${CLUSTER_NAME:-data-platform-dev}"
 DEPLOY_ENV="${DEPLOY_ENV:-dev}"
 ARGO_NAMESPACE="${ARGO_NAMESPACE:-argocd}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-kind-${CLUSTER_NAME}}"

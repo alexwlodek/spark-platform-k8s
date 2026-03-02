@@ -22,7 +22,7 @@ This creates a kind cluster, installs ingress-nginx and bootstraps Argo CD with 
 `scripts/bootstrap-argocd.sh` supports environment/context selection:
 
 ```bash
-DEPLOY_ENV=dev KUBE_CONTEXT=kind-spark-dev scripts/bootstrap-argocd.sh
+DEPLOY_ENV=dev KUBE_CONTEXT=kind-data-platform-dev scripts/bootstrap-argocd.sh
 ```
 
 Wrappers:
@@ -96,23 +96,30 @@ scripts/dev-kibana-ui.sh
 DEV stack adds production-like near-real-time path:
 
 - `streaming-kafka` (single-node Kafka in-cluster)
-- `streaming-minio` (S3-compatible object storage for checkpoints + Parquet)
-- `streaming-nessie-db` (PostgreSQL metadata backend for Nessie)
-- `streaming-nessie` (Iceberg catalog service)
-- `streaming-trino` (single-node SQL engine for ad-hoc querying and BI connectivity)
-- `streaming-metabase` (BI UI connected to Trino for dashboards and ad-hoc analysis)
+- `storage-minio` (S3-compatible object storage for checkpoints + Parquet)
+- `storage-nessie-db` (PostgreSQL metadata backend for Nessie)
+- `storage-nessie` (Iceberg catalog service)
+- `bi-trino` (single-node SQL engine for ad-hoc querying and BI connectivity)
+- `bi-metabase` (BI UI connected to Trino for dashboards and ad-hoc analysis)
 - `streaming-pipeline` (orders generator + Spark Structured Streaming + alerts + dashboard)
 
 Main assets:
 
 - generator code: `apps/order-generator/generator.py`
 - streaming Spark code: `apps/spark-job/streaming_job.py`
-- charts: `charts/streaming-kafka`, `charts/streaming-minio`, `charts/streaming-nessie-db`, `charts/streaming-nessie`, `charts/streaming-trino`, `charts/streaming-metabase`, `charts/streaming-pipeline`
-- Argo apps: `clusters/dev/apps/streaming-*.yaml`
+- charts: `charts/streaming-kafka`, `charts/storage-minio`, `charts/storage-nessie-db`, `charts/storage-nessie`, `charts/bi-trino`, `charts/bi-metabase`, `charts/streaming-pipeline`
+- Argo apps:
+  - `clusters/dev/apps/streaming-kafka.yaml`
+  - `clusters/dev/apps/storage-minio.yaml`
+  - `clusters/dev/apps/storage-nessie-db.yaml`
+  - `clusters/dev/apps/storage-nessie.yaml`
+  - `clusters/dev/apps/bi-trino.yaml`
+  - `clusters/dev/apps/bi-metabase.yaml`
+  - `clusters/dev/apps/streaming-pipeline.yaml`
 - values:
-  - common: `values/common/streaming-*.yaml`
-  - dev: `values/dev/streaming-*.yaml`
-  - prod placeholders: `values/prod/streaming-*.yaml`
+  - common: `values/common/streaming-*.yaml`, `values/common/storage-*.yaml`, `values/common/bi-*.yaml`
+  - dev: `values/dev/streaming-*.yaml`, `values/dev/storage-*.yaml`, `values/dev/bi-*.yaml`
+  - prod placeholders: `values/prod/streaming-*.yaml`, `values/prod/storage-*.yaml`, `values/prod/bi-*.yaml`
 
 Spark job performs:
 

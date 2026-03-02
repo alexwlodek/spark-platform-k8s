@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CLUSTER_NAME="${CLUSTER_NAME:-spark-dev}"
+CLUSTER_NAME="${CLUSTER_NAME:-data-platform-dev}"
 KIND_IMAGE="${KIND_IMAGE:-kindest/node:v1.29.4}"
 KIND_CONFIG="${KIND_CONFIG:-scripts/kind-config.yaml}"
 KIND_DELETE_EXISTING="${KIND_DELETE_EXISTING:-0}"
