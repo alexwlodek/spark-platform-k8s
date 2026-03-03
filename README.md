@@ -17,6 +17,9 @@ scripts/dev-up.sh
 
 This creates a kind cluster, installs ingress-nginx and bootstraps Argo CD with app-of-apps.
 
+Default kind Kubernetes image is `kindest/node:v1.34.2` (override via `KIND_IMAGE=...`).
+If you already have an older cluster, recreate it with `KIND_DELETE_EXISTING=1 scripts/dev-up.sh`.
+
 DEV UI access now uses ingress hosts (no manual `kubectl port-forward` needed):
 
 ```bash
@@ -61,8 +64,11 @@ Tuning:
 - `KIND_PRELOAD_PULL_MISSING=1` (default): pulls missing images to local Docker cache, then loads them into kind
 - `KIND_PRELOAD_IMAGES="image1:tag image2:tag"`: override preload list
 - `KIND_PRELOAD_IMAGES=""`: disable preload cache
-- `KIND_FIX_NODE_DNS=1` (default): rewrites `/etc/resolv.conf` on all kind nodes
+- `KIND_FIX_NODE_DNS=0` (default): keep kind node DNS as-is; set to `1` only if node-level pulls have DNS issues
+- `KIND_FIX_NODE_DNS_FORCE=0` (default): on `kindest/node:v1.34+`, DNS rewrite is skipped unless force is explicitly set to `1`
 - `KIND_NODE_DNS_SERVERS="1.1.1.1 8.8.8.8"`: DNS servers used by node-level image pulls
+- `KIND_WAIT_NODES_TIMEOUT=300s`: timeout for all nodes to become `Ready`
+- `INGRESS_WAIT_TIMEOUT=240s`: timeout for ingress admission secret creation
 
 ## Observability drills
 

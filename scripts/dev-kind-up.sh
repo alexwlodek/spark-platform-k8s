@@ -2,19 +2,28 @@
 set -euo pipefail
 
 CLUSTER_NAME="${CLUSTER_NAME:-data-platform-dev}"
-KIND_IMAGE="${KIND_IMAGE:-kindest/node:v1.29.4}"
+KIND_IMAGE="${KIND_IMAGE:-kindest/node:v1.34.2}"
 KIND_CONFIG="${KIND_CONFIG:-scripts/kind-config.yaml}"
 KIND_DELETE_EXISTING="${KIND_DELETE_EXISTING:-0}"
 KIND_PRELOAD_IMAGES="${KIND_PRELOAD_IMAGES:-ghcr.io/kubeflow/spark-operator/controller:2.4.0 ghcr.io/alexwlodek/spark-demo-job:latest ghcr.io/alexwlodek/order-generator:latest}"
 KIND_PRELOAD_ENABLED="${KIND_PRELOAD_ENABLED:-0}"
 KIND_PRELOAD_PULL_MISSING="${KIND_PRELOAD_PULL_MISSING:-1}"
 KIND_PRELOAD_RETRIES="${KIND_PRELOAD_RETRIES:-3}"
-KIND_FIX_NODE_DNS="${KIND_FIX_NODE_DNS:-1}"
+KIND_FIX_NODE_DNS="${KIND_FIX_NODE_DNS:-0}"
+KIND_FIX_NODE_DNS_FORCE="${KIND_FIX_NODE_DNS_FORCE:-0}"
 KIND_NODE_DNS_SERVERS="${KIND_NODE_DNS_SERVERS:-1.1.1.1 8.8.8.8}"
+KIND_WAIT_NODES_TIMEOUT="${KIND_WAIT_NODES_TIMEOUT:-300s}"
+INGRESS_WAIT_TIMEOUT="${INGRESS_WAIT_TIMEOUT:-240s}"
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
 require kind
 require kubectl
+require docker
+
+if ! docker info >/dev/null 2>&1; then
+  echo "Cannot access Docker daemon. Ensure Docker is running and your user can access /var/run/docker.sock." >&2
+  exit 1
+fi
 
 preload_images() {
   if [[ "${KIND_PRELOAD_ENABLED}" != "1" ]]; then
@@ -84,6 +93,13 @@ fix_kind_node_dns() {
     return
   fi
 
+  # kind node DNS rewrite caused worker CNI bootstrap issues on K8s 1.34+ in this setup.
+  # Keep it opt-in with explicit force flag for troubleshooting only.
+  if [[ "${KIND_IMAGE}" =~ kindest/node:v1\.(34|35|36|37|38|39)\..* ]] && [[ "${KIND_FIX_NODE_DNS_FORCE}" != "1" ]]; then
+    echo "Skipping kind node DNS rewrite on ${KIND_IMAGE}. Use KIND_FIX_NODE_DNS_FORCE=1 to override."
+    return
+  fi
+
   if ! command -v docker >/dev/null 2>&1; then
     echo "Skipping kind node DNS fix (docker CLI not found)."
     return
@@ -100,6 +116,40 @@ fix_kind_node_dns() {
       echo "options ndots:0"
     } | docker exec -i "${node}" sh -c "cat > /etc/resolv.conf"
   done < <(kind get nodes --name "${CLUSTER_NAME}")
+}
+
+wait_for_nodes_ready() {
+  echo "Waiting for all nodes to become Ready..."
+  if ! kubectl wait --for=condition=Ready node --all --timeout="${KIND_WAIT_NODES_TIMEOUT}" >/dev/null; then
+    echo "ERROR: nodes did not become Ready in ${KIND_WAIT_NODES_TIMEOUT}" >&2
+    kubectl get nodes -o wide >&2 || true
+    return 1
+  fi
+}
+
+wait_for_ingress_admission() {
+  echo "Waiting for ingress-nginx admission secret..."
+  local wait_seconds loops i
+  wait_seconds="${INGRESS_WAIT_TIMEOUT%s}"
+  if ! [[ "${wait_seconds}" =~ ^[0-9]+$ ]]; then
+    wait_seconds=240
+  fi
+  loops=$(( (wait_seconds + 1) / 2 ))
+
+  for i in $(seq 1 "${loops}"); do
+    if kubectl -n ingress-nginx get secret ingress-nginx-admission >/dev/null 2>&1; then
+      return 0
+    fi
+    if (( i % 10 == 0 )); then
+      kubectl -n ingress-nginx get pods,jobs >&2 || true
+    fi
+    sleep 2
+  done
+
+  echo "ERROR: secret ingress-nginx-admission was not created" >&2
+  kubectl -n ingress-nginx get pods,jobs >&2 || true
+  kubectl -n ingress-nginx get events --sort-by=.lastTimestamp | tail -n 80 >&2 || true
+  return 1
 }
 
 if kind get clusters | grep -qx "${CLUSTER_NAME}"; then
@@ -121,11 +171,14 @@ fi
 
 kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
 
+wait_for_nodes_ready
 fix_kind_node_dns
 preload_images
 
 echo "Installing ingress-nginx (kind recommended manifest)..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+wait_for_ingress_admission
 
 echo "Waiting for ingress-nginx controller..."
 kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=180s
