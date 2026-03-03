@@ -149,7 +149,7 @@ Baseline for secret management in DEV:
 
 - Argo app: `clusters/dev/apps/security-external-secrets.yaml`
 - values: `values/common/external-secrets.yaml`, `values/dev/external-secrets.yaml`
-- Helm source: `https://charts.external-secrets.io` (chart `external-secrets`, `targetRevision: 1.3.2`)
+- Helm source: `https://charts.external-secrets.io` (chart `external-secrets`, `targetRevision: 0.19.2`)
 
 Charts prepared for external secret injection (`existingSecret` support):
 
