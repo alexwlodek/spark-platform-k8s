@@ -23,6 +23,9 @@ trino:
   # additionalCatalogs can be used to override or append catalogs from values/common|dev.
   additionalCatalogs: {}
 
+# Extra environment variables for the Trino container.
+extraEnv: []
+
 persistence:
   enabled: false
   size: 8Gi

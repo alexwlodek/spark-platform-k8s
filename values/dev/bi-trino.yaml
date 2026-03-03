@@ -1,3 +1,15 @@
+extraEnv:
+  - name: TRINO_S3_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: platform-minio-creds
+        key: root-user
+  - name: TRINO_S3_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: platform-minio-creds
+        key: root-password
+
 resources:
   requests:
     cpu: 200m

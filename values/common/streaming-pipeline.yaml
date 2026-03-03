@@ -71,15 +71,11 @@ sparkApplication:
     spark.sql.catalog.iceberg_nessie.s3.path-style-access: "true"
     spark.sql.catalog.iceberg_nessie.s3.region: eu-central-1
     spark.sql.catalog.iceberg_nessie.client.region: eu-central-1
-    spark.sql.catalog.iceberg_nessie.s3.access-key-id: minio
-    spark.sql.catalog.iceberg_nessie.s3.secret-access-key: minio123
     spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
     spark.hadoop.fs.s3a.endpoint: http://storage-minio.apps.svc.cluster.local:9000
     spark.hadoop.fs.s3a.path.style.access: "true"
     spark.hadoop.fs.s3a.connection.ssl.enabled: "false"
-    spark.hadoop.fs.s3a.aws.credentials.provider: org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
-    spark.hadoop.fs.s3a.access.key: minio
-    spark.hadoop.fs.s3a.secret.key: minio123
+    spark.hadoop.fs.s3a.aws.credentials.provider: com.amazonaws.auth.EnvironmentVariableCredentialsProvider
   restartPolicy:
     type: OnFailure
     onFailureRetries: 3

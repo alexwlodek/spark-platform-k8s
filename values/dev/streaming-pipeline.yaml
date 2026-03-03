@@ -8,6 +8,38 @@ sparkApplication:
     pullPolicy: Always
   driver:
     memory: "768m"
+    env:
+      - name: PYTHONUNBUFFERED
+        value: "1"
+      - name: AWS_REGION
+        value: "eu-central-1"
+      - name: AWS_DEFAULT_REGION
+        value: "eu-central-1"
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: platform-minio-creds
+            key: root-user
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: platform-minio-creds
+            key: root-password
   executor:
     instances: 1
     memory: "768m"
+    env:
+      - name: AWS_REGION
+        value: "eu-central-1"
+      - name: AWS_DEFAULT_REGION
+        value: "eu-central-1"
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: platform-minio-creds
+            key: root-user
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: platform-minio-creds
+            key: root-password

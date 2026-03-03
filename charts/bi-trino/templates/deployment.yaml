@@ -20,6 +20,10 @@ spec:
         - name: trino
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+{{- with .Values.extraEnv }}
+          env:
+{{ toYaml . | indent 12 }}
+{{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
