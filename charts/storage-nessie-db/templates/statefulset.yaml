@@ -28,22 +28,22 @@ spec:
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "storage-nessie-db.fullname" . }}
+                  name: {{ include "storage-nessie-db.authSecretName" . }}
                   key: database
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "storage-nessie-db.fullname" . }}
+                  name: {{ include "storage-nessie-db.authSecretName" . }}
                   key: username
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "storage-nessie-db.fullname" . }}
+                  name: {{ include "storage-nessie-db.authSecretName" . }}
                   key: password
             - name: POSTGRES_POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "storage-nessie-db.fullname" . }}
+                  name: {{ include "storage-nessie-db.authSecretName" . }}
                   key: postgres-password
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata

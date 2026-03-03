@@ -1,3 +1,6 @@
+auth:
+  existingSecret: platform-minio-creds
+
 persistence:
   size: 10Gi
 

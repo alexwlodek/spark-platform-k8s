@@ -1,3 +1,6 @@
+auth:
+  existingSecret: platform-nessie-db-creds
+
 persistence:
   size: 5Gi
 

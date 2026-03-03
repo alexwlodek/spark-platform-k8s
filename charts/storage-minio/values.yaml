@@ -9,6 +9,7 @@ mcImage:
   pullPolicy: IfNotPresent
 
 auth:
+  existingSecret: ""
   rootUser: minio
   rootPassword: minio123
 

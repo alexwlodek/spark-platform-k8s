@@ -39,12 +39,12 @@ spec:
             - name: QUARKUS_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "storage-nessie.fullname" . }}
+                  name: {{ include "storage-nessie.databaseSecretName" . }}
                   key: db-username
             - name: QUARKUS_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "storage-nessie.fullname" . }}
+                  name: {{ include "storage-nessie.databaseSecretName" . }}
                   key: db-password
             - name: QUARKUS_DATASOURCE_DB_KIND
               value: postgresql

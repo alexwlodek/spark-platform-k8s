@@ -1,3 +1,6 @@
+database:
+  existingSecret: platform-nessie-creds
+
 resources:
   requests:
     cpu: 100m

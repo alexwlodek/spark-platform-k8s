@@ -7,6 +7,7 @@ service:
   port: 5432
 
 auth:
+  existingSecret: ""
   database: nessie
   username: nessie
   password: nessie123

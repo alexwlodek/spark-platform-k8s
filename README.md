@@ -143,6 +143,60 @@ Spark job performs:
 - checkpointing and Parquet sink to MinIO (`s3a://streaming-lake/...`)
 - Prometheus metrics export (`inputRowsPerSecond`, `processedRowsPerSecond`, batch duration, lag, failures)
 
+## Security hardening (phase 1)
+
+Baseline for secret management in DEV:
+
+- Argo app: `clusters/dev/apps/security-external-secrets.yaml`
+- values: `values/common/external-secrets.yaml`, `values/dev/external-secrets.yaml`
+- Helm source: `https://charts.external-secrets.io` (chart `external-secrets`, `targetRevision: 1.3.2`)
+
+Charts prepared for external secret injection (`existingSecret` support):
+
+- `charts/storage-minio` -> `auth.existingSecret` (`root-user`, `root-password`)
+- `charts/storage-nessie` -> `database.existingSecret` (`db-username`, `db-password`)
+- `charts/storage-nessie-db` -> `auth.existingSecret` (`database`, `username`, `password`, `postgres-password`)
+
+Recommended next step before SSO:
+
+1. Move remaining in-values credentials (`values/common/streaming-pipeline.yaml`, `values/common/bi-trino.yaml`) to Kubernetes Secrets.
+2. Bind Spark/Trino runtime config to those Secrets (no plaintext access keys in Git).
+3. After secret flow is stable, enable OIDC SSO for Argo CD and UI tools.
+
+## AWS Secrets Manager on DEV (kind)
+
+Argo apps and manifests:
+
+- `clusters/dev/apps/security-external-secrets.yaml`
+- `clusters/dev/apps/security-aws-secretsmanager.yaml`
+- `clusters/dev/security/aws-secretsmanager/*`
+
+DEV storage apps use externalized credentials via:
+
+- `values/dev/storage-minio.yaml` -> `auth.existingSecret: platform-minio-creds`
+- `values/dev/storage-nessie.yaml` -> `database.existingSecret: platform-nessie-creds`
+- `values/dev/storage-nessie-db.yaml` -> `auth.existingSecret: platform-nessie-db-creds`
+
+Local bootstrap for kind:
+
+```bash
+# 1) Seed example secrets in AWS Secrets Manager
+scripts/dev-aws-sm-seed.sh
+
+# 2) Provide AWS credentials to ESO in-cluster
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+# optional for temporary STS credentials
+export AWS_SESSION_TOKEN=...
+scripts/dev-aws-sm-auth.sh
+```
+
+Defaults used by `ExternalSecret` manifests:
+
+- `/spark-platform/dev/storage-minio`
+- `/spark-platform/dev/storage-nessie`
+- `/spark-platform/dev/storage-nessie-db`
+
 ## CI/CD for Spark image
 
 Workflow: `.github/workflows/spark-job-image.yml` (GHCR)
