@@ -19,6 +19,9 @@ spec:
       chart: argo-cd
       targetRevision: 7.7.0
       helm:
+        parameters:
+          - name: configs.secret.createSecret
+            value: "false"
         valueFiles:
           - $values/values/common/argocd.yaml
           - $values/values/dev/argocd.yaml

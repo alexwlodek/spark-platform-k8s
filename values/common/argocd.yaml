@@ -44,6 +44,8 @@ redis:
       memory: 256Mi
 
 configs:
+  secret:
+    createSecret: false
   params:
     controller.status.processors: "20"
     controller.operation.processors: "10"
