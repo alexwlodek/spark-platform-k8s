@@ -20,3 +20,5 @@ override.tf.json
 # Terraform crash logs
 crash.log
 crash.*.log
+
+/scripts/dev-aws-sm-seed.sh
