@@ -15,5 +15,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo
 echo "✅ DEV ready."
 echo "Next:"
-echo "  - Argo CD UI: ${SCRIPT_DIR}/dev-argocd-ui.sh"
+echo "  - UI URLs + credentials: ${SCRIPT_DIR}/dev-ui-links.sh"
+echo "  - Argo CD port-forward fallback: ${SCRIPT_DIR}/dev-argocd-ui.sh"
 echo "  - Apps: kubectl -n argocd get applications"

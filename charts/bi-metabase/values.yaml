@@ -9,6 +9,14 @@ service:
   type: ClusterIP
   port: 3000
 
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: ""
+  path: /
+  pathType: Prefix
+
 persistence:
   enabled: true
   size: 5Gi

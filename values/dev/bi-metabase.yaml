@@ -8,3 +8,11 @@ resources:
 
 persistence:
   size: 2Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: metabase.127.0.0.1.nip.io
+
+metabase:
+  siteUrl: http://metabase.127.0.0.1.nip.io:8080

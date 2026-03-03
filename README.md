@@ -17,6 +17,20 @@ scripts/dev-up.sh
 
 This creates a kind cluster, installs ingress-nginx and bootstraps Argo CD with app-of-apps.
 
+DEV UI access now uses ingress hosts (no manual `kubectl port-forward` needed):
+
+```bash
+scripts/dev-ui-links.sh
+```
+
+Hosts:
+
+- `http://argocd.127.0.0.1.nip.io:8080`
+- `http://grafana.127.0.0.1.nip.io:8080`
+- `http://prometheus.127.0.0.1.nip.io:8080`
+- `http://kibana.127.0.0.1.nip.io:8080`
+- `http://metabase.127.0.0.1.nip.io:8080`
+
 ## Argo CD bootstrap (generic)
 
 `scripts/bootstrap-argocd.sh` supports environment/context selection:
@@ -74,7 +88,7 @@ Argo applications:
 Quick access (dev):
 
 ```bash
-scripts/dev-kibana-ui.sh
+scripts/dev-ui-links.sh
 ```
 
 ## Spark demo job (GitOps)
