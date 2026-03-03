@@ -7,6 +7,21 @@ metadata:
     argocd.argoproj.io/sync-wave: "32"
 spec:
   project: platform
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: storage-nessie-db
+      namespace: apps
+      jsonPointers:
+        - /spec/persistentVolumeClaimRetentionPolicy
+        - /spec/podManagementPolicy
+        - /spec/revisionHistoryLimit
+        - /spec/updateStrategy
+      jqPathExpressions:
+        - .spec.volumeClaimTemplates[]?.apiVersion
+        - .spec.volumeClaimTemplates[]?.kind
+        - .spec.volumeClaimTemplates[]?.status
+        - .spec.volumeClaimTemplates[]?.spec.volumeMode
   sources:
     - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
       targetRevision: main

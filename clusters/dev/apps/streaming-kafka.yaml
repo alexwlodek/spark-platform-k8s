@@ -17,6 +17,11 @@ spec:
         - /spec/podManagementPolicy
         - /spec/revisionHistoryLimit
         - /spec/updateStrategy
+      jqPathExpressions:
+        - .spec.volumeClaimTemplates[]?.apiVersion
+        - .spec.volumeClaimTemplates[]?.kind
+        - .spec.volumeClaimTemplates[]?.status
+        - .spec.volumeClaimTemplates[]?.spec.volumeMode
   sources:
     - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
       targetRevision: main
