@@ -1,0 +1,56 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "logging-assets.fullname" . }}-bootstrap
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "logging-assets.labels" . | indent 4 }}
+data:
+  bootstrap.sh: |
+    #!/bin/sh
+    set -eu
+
+    wait_for() {
+      name="$1"
+      url="$2"
+      header="${3:-}"
+      attempts="${4:-60}"
+      current=1
+
+      while [ "${current}" -le "${attempts}" ]; do
+        if [ -n "${header}" ]; then
+          if curl -fsS -H "${header}" "${url}" >/dev/null 2>&1; then
+            return 0
+          fi
+        else
+          if curl -fsS "${url}" >/dev/null 2>&1; then
+            return 0
+          fi
+        fi
+        echo "waiting for ${name} (${current}/${attempts})"
+        sleep 5
+        current=$((current + 1))
+      done
+
+      echo "${name} is not ready: ${url}" >&2
+      return 1
+    }
+
+    wait_for "Elasticsearch" "${ELASTICSEARCH_URL}" "" 60
+    wait_for "Kibana" "${KIBANA_URL}/api/status" "kbn-xsrf: true" 60
+
+    curl -fsS \
+      -X PUT \
+      "${ELASTICSEARCH_URL}/_index_template/${ELASTICSEARCH_TEMPLATE_NAME}" \
+      -H "Content-Type: application/json" \
+      --data-binary @/assets/index-template.json >/tmp/elasticsearch-template.json
+
+    curl -fsS \
+      -X POST \
+      "${KIBANA_URL}/api/saved_objects/_import?overwrite=true" \
+      -H "kbn-xsrf: true" \
+      --form file=@/assets/kibana.ndjson >/tmp/kibana-import.json
+
+    echo "Applied index template ${ELASTICSEARCH_TEMPLATE_NAME} and imported Kibana saved objects."
+{{- end }}

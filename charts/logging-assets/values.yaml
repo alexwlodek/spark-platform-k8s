@@ -1,0 +1,20 @@
+enabled: true
+
+job:
+  image:
+    repository: curlimages/curl
+    tag: 8.12.1
+    pullPolicy: IfNotPresent
+  activeDeadlineSeconds: 600
+  backoffLimit: 4
+
+elasticsearch:
+  url: http://elasticsearch:9200
+  templateName: order-generator-logs-v1
+  indexPattern: order-generator-*
+
+kibana:
+  url: http://kibana:5601
+  indexPatternId: order-generator-logs
+  dashboardId: order-generator-observability
+  serviceFilter: order-generator

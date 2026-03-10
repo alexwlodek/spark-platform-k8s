@@ -1,0 +1,58 @@
+{{- if .Values.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "logging-assets.fullname" . }}-bootstrap
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+  labels:
+{{ include "logging-assets.labels" . | indent 4 }}
+spec:
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  template:
+    metadata:
+      labels:
+{{ include "logging-assets.labels" . | indent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: "{{ .Values.job.image.repository }}:{{ .Values.job.image.tag }}"
+          imagePullPolicy: {{ .Values.job.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - /scripts/bootstrap.sh
+          env:
+            - name: ELASTICSEARCH_URL
+              value: {{ .Values.elasticsearch.url | quote }}
+            - name: ELASTICSEARCH_TEMPLATE_NAME
+              value: {{ .Values.elasticsearch.templateName | quote }}
+            - name: KIBANA_URL
+              value: {{ .Values.kibana.url | quote }}
+          volumeMounts:
+            - name: bootstrap-script
+              mountPath: /scripts
+              readOnly: true
+            - name: index-template
+              mountPath: /assets/index-template.json
+              subPath: index-template.json
+              readOnly: true
+            - name: kibana-objects
+              mountPath: /assets/kibana.ndjson
+              subPath: kibana.ndjson
+              readOnly: true
+      volumes:
+        - name: bootstrap-script
+          configMap:
+            name: {{ include "logging-assets.fullname" . }}-bootstrap
+            defaultMode: 0555
+        - name: index-template
+          configMap:
+            name: {{ include "logging-assets.fullname" . }}-index-template
+        - name: kibana-objects
+          configMap:
+            name: {{ include "logging-assets.fullname" . }}-kibana-objects
+{{- end }}

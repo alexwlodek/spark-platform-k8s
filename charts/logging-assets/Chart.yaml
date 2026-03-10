@@ -1,0 +1,6 @@
+apiVersion: v2
+name: logging-assets
+description: Elasticsearch mappings and Kibana assets for logging workflows
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

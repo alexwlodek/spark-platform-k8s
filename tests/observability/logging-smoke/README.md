@@ -3,6 +3,10 @@
 This drill verifies that logs from namespace `apps` are collected by Fluent Bit
 and indexed in Elasticsearch.
 
+For structured `order-generator` logs there is also a dedicated Elasticsearch
+index pattern `order-generator-*` with custom mappings and a Kibana dashboard
+named `Order Generator Observability`.
+
 ## Run
 
 ```bash

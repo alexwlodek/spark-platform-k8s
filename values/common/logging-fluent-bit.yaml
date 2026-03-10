@@ -51,6 +51,12 @@ config:
         K8S-Logging.Parser On
         K8S-Logging.Exclude On
 
+    [FILTER]
+        Name rewrite_tag
+        Match kube.*
+        Rule $service ^order-generator$ order-generator.$TAG true
+        Emitter_Name re_emitted_order_generator
+
   outputs: |
     [OUTPUT]
         Name es
@@ -59,6 +65,18 @@ config:
         Port 9200
         Logstash_Format On
         Logstash_Prefix k8s
+        Replace_Dots On
+        Suppress_Type_Name On
+        Generate_ID On
+        Retry_Limit False
+
+    [OUTPUT]
+        Name es
+        Match order-generator.*
+        Host elasticsearch
+        Port 9200
+        Logstash_Format On
+        Logstash_Prefix order-generator
         Replace_Dots On
         Suppress_Type_Name On
         Generate_ID On

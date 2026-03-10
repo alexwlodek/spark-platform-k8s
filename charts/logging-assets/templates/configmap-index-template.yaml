@@ -1,0 +1,108 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "logging-assets.fullname" . }}-index-template
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "logging-assets.labels" . | indent 4 }}
+data:
+  index-template.json: |
+    {
+      "index_patterns": ["{{ .Values.elasticsearch.indexPattern }}"],
+      "priority": 200,
+      "_meta": {
+        "description": "Dedicated mapping for order-generator structured logs"
+      },
+      "template": {
+        "settings": {
+          "number_of_shards": 1,
+          "number_of_replicas": 0,
+          "index.refresh_interval": "5s"
+        },
+        "mappings": {
+          "dynamic": true,
+          "date_detection": false,
+          "dynamic_templates": [
+            {
+              "kubernetes_labels_as_keywords": {
+                "path_match": "kubernetes.labels.*",
+                "mapping": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            {
+              "kubernetes_annotations_as_keywords": {
+                "path_match": "kubernetes.annotations.*",
+                "mapping": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            {
+              "strings_as_keywords": {
+                "match_mapping_type": "string",
+                "mapping": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          ],
+          "properties": {
+            "@timestamp": { "type": "date" },
+            "ts": { "type": "date" },
+            "time": { "type": "date" },
+            "level": { "type": "keyword" },
+            "service": { "type": "keyword" },
+            "environment": { "type": "keyword" },
+            "component": { "type": "keyword" },
+            "message": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 1024
+                }
+              }
+            },
+            "run_id": { "type": "keyword" },
+            "trace_id": { "type": "keyword" },
+            "event_id": { "type": "keyword" },
+            "event_type": { "type": "keyword" },
+            "event_version": { "type": "integer" },
+            "schema_ref": { "type": "keyword" },
+            "status": { "type": "keyword" },
+            "kafka_topic": { "type": "keyword" },
+            "order_id": { "type": "keyword" },
+            "customer_id": { "type": "keyword" },
+            "payment_id": { "type": "keyword" },
+            "session_id": { "type": "keyword" },
+            "reason_code": { "type": "keyword" },
+            "reason_group": { "type": "keyword" },
+            "region": { "type": "keyword" },
+            "channel": { "type": "keyword" },
+            "customer_segment": { "type": "keyword" },
+            "latency_ms": { "type": "float" },
+            "amount": {
+              "type": "scaled_float",
+              "scaling_factor": 100
+            },
+            "queue_depth": { "type": "integer" },
+            "blocked_seconds": { "type": "float" },
+            "validation_errors": {
+              "type": "object",
+              "enabled": true
+            },
+            "kubernetes": {
+              "type": "object",
+              "dynamic": true
+            }
+          }
+        }
+      }
+    }
+{{- end }}

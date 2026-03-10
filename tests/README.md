@@ -12,3 +12,4 @@ This folder contains non-GitOps test/drill assets for DEV practice.
   - Emits synthetic logs from a pod in `apps`
   - Verifies indexing in Elasticsearch
   - Lets you practice EFK log pipeline checks
+  - The order-generator logs are also duplicated into `order-generator-*` with a dedicated Kibana dashboard
