@@ -1,0 +1,25 @@
+{{- if and .Values.generator.enabled .Values.generator.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "streaming-pipeline.fullname" . }}-generator
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "streaming-pipeline.labels" . | indent 4 }}
+    app.kubernetes.io/component: generator
+spec:
+  type: {{ .Values.generator.service.type | quote }}
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/name: {{ include "streaming-pipeline.name" . | quote }}
+    app.kubernetes.io/component: generator
+  ports:
+    - name: metrics
+      port: {{ .Values.generator.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+    - name: health
+      port: {{ .Values.generator.healthPort }}
+      targetPort: health
+      protocol: TCP
+{{- end }}

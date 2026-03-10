@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/order_created.v1.json",
+  "title": "order_created v1",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "event_time",
+    "producer",
+    "environment",
+    "run_id",
+    "trace_id",
+    "schema_ref",
+    "partition_key",
+    "idempotency_key",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "order_created" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/order_created.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "channel",
+        "device_type",
+        "campaign_id",
+        "region",
+        "country",
+        "currency",
+        "customer_segment",
+        "customer_tenure_days",
+        "items",
+        "subtotal",
+        "discount_total",
+        "tax_total",
+        "shipping_total",
+        "grand_total"
+      ],
+      "properties": {
+        "channel": { "type": "string" },
+        "device_type": { "type": "string" },
+        "campaign_id": { "type": "string" },
+        "region": { "type": "string" },
+        "country": { "type": "string" },
+        "currency": { "type": "string" },
+        "customer_segment": { "type": "string" },
+        "customer_tenure_days": { "type": "integer", "minimum": 0 },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "sku",
+              "category",
+              "brand",
+              "qty",
+              "unit_price",
+              "inventory_class",
+              "seasonality_tag"
+            ],
+            "properties": {
+              "sku": { "type": "string" },
+              "category": { "type": "string" },
+              "brand": { "type": "string" },
+              "qty": { "type": "integer", "minimum": 1 },
+              "unit_price": { "type": "number", "exclusiveMinimum": 0 },
+              "inventory_class": { "type": "string" },
+              "seasonality_tag": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "subtotal": { "type": "number", "exclusiveMinimum": 0 },
+        "discount_total": { "type": "number", "minimum": 0 },
+        "tax_total": { "type": "number", "minimum": 0 },
+        "shipping_total": { "type": "number", "minimum": 0 },
+        "grand_total": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

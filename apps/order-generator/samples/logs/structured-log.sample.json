@@ -1,0 +1,22 @@
+{
+  "ts": "2026-03-10T12:00:18.430Z",
+  "level": "WARN",
+  "service": "order-generator",
+  "environment": "dev",
+  "message": "Business event emitted",
+  "component": "payments",
+  "run_id": "run-20260310-120000-seed42",
+  "trace_id": "trc-1f0f8db0-6f1d-4d72-a3e7-e0b4c2db5001",
+  "order_id": "ord-000123",
+  "customer_id": "cust-01042",
+  "payment_id": "pay-000123",
+  "event_type": "payment_failed",
+  "kafka_topic": "commerce.payment.events.v1",
+  "status": "published",
+  "reason_code": "insufficient_funds",
+  "latency_ms": 31.0,
+  "region": "eu-central-1",
+  "channel": "mobile",
+  "customer_segment": "loyal",
+  "amount": 114.43
+}

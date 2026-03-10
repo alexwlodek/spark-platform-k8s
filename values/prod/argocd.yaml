@@ -1,0 +1,32 @@
+# EKS/PROD overrides
+global:
+  domain: argocd.prod.example.com
+
+configs:
+  secret:
+    # Phase 1 uses chart-managed secret; in phase 2 switch to ExternalSecret.
+    createSecret: true
+  cm:
+    url: https://argocd.prod.example.com
+  params:
+    server.insecure: false
+
+redisSecretInit:
+  enabled: true
+
+server:
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    hostname: argocd.prod.example.com
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+      alb.ingress.kubernetes.io/backend-protocol: HTTP
+      alb.ingress.kubernetes.io/inbound-cidrs: 0.0.0.0/0
+      # Set ACM certificate ARN before public exposure.
+      # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx

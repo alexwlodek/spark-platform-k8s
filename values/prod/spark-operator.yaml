@@ -1,0 +1,24 @@
+# EKS/PROD phase 1: bootstrap only spark-operator.
+replicaCount: 2
+
+webhook:
+  enable: true
+
+spark:
+  jobNamespaces:
+    - spark-operator
+
+prometheus:
+  metrics:
+    enable: true
+  podMonitor:
+    # Disabled until monitoring stack is enabled in prod.
+    create: false
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 384Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

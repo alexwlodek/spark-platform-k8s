@@ -16,8 +16,6 @@ database:
   host: storage-nessie-db.apps.svc.cluster.local
   port: 5432
   name: nessie
-  username: nessie
-  password: nessie123
 
 resources:
   requests:

@@ -10,8 +10,6 @@ auth:
   existingSecret: ""
   database: nessie
   username: nessie
-  password: nessie123
-  postgresPassword: postgres123
 
 persistence:
   enabled: true

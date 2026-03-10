@@ -1,0 +1,57 @@
+{{- if and .Values.generator.enabled .Values.generatorPrometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "streaming-pipeline.fullname" . }}-generator-alerts
+  namespace: {{ default .Release.Namespace .Values.generatorPrometheusRule.namespace }}
+  labels:
+{{ include "streaming-pipeline.labels" . | indent 4 }}
+{{- with .Values.generatorPrometheusRule.labels }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  groups:
+    - name: {{ include "streaming-pipeline.fullname" . }}.generator.recording
+      rules:
+        - record: order_generator:publish_success_ratio_5m
+          expr: |
+            sum(rate(order_generator_events_published_total{result="success"}[5m]))
+            /
+            clamp_min(sum(rate(order_generator_events_published_total[5m])), 1)
+        - record: order_generator:orders_created_5m
+          expr: sum(increase(order_generator_orders_created_total[5m]))
+        - record: order_generator:schema_failures_5m
+          expr: sum(increase(order_generator_schema_validation_failures_total[5m]))
+    - name: {{ include "streaming-pipeline.fullname" . }}.generator.alerts
+      rules:
+{{- if .Values.generatorPrometheusRule.alerts.noOrders.enabled }}
+        - alert: OrderGeneratorNoOrders
+          expr: order_generator:orders_created_5m == 0
+          for: {{ .Values.generatorPrometheusRule.alerts.noOrders.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Order generator stopped producing orders
+            description: No order_created events were observed during the last 5 minutes.
+{{- end }}
+{{- if .Values.generatorPrometheusRule.alerts.schemaFailures.enabled }}
+        - alert: OrderGeneratorSchemaValidationFailures
+          expr: order_generator:schema_failures_5m > 0
+          for: {{ .Values.generatorPrometheusRule.alerts.schemaFailures.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Order generator produced invalid events
+            description: Schema validation failures were observed during the last 5 minutes.
+{{- end }}
+{{- if .Values.generatorPrometheusRule.alerts.publishFailureRatio.enabled }}
+        - alert: OrderGeneratorPublishFailureRatioHigh
+          expr: (1 - order_generator:publish_success_ratio_5m) > {{ .Values.generatorPrometheusRule.alerts.publishFailureRatio.threshold }}
+          for: {{ .Values.generatorPrometheusRule.alerts.publishFailureRatio.for | quote }}
+          labels:
+            severity: warning
+          annotations:
+            summary: Order generator publish failure ratio is elevated
+            description: Kafka publish failures exceeded the configured threshold over the last 5 minutes.
+{{- end }}
+{{- end }}

@@ -152,6 +152,31 @@ wait_for_ingress_admission() {
   return 1
 }
 
+pin_ingress_controller_to_control_plane() {
+  local control_plane_node="${CLUSTER_NAME}-control-plane"
+  local loops=60
+  local i
+  local found=0
+
+  echo "Pinning ingress-nginx controller to ${control_plane_node}..."
+  for i in $(seq 1 "${loops}"); do
+    if kubectl -n ingress-nginx get deployment ingress-nginx-controller >/dev/null 2>&1; then
+      found=1
+      break
+    fi
+    sleep 2
+  done
+
+  if [[ "${found}" != "1" ]]; then
+    echo "ERROR: ingress-nginx controller deployment not found" >&2
+    kubectl -n ingress-nginx get all >&2 || true
+    return 1
+  fi
+
+  kubectl -n ingress-nginx patch deployment ingress-nginx-controller --type=merge \
+    -p "{\"spec\":{\"template\":{\"spec\":{\"nodeSelector\":{\"kubernetes.io/hostname\":\"${control_plane_node}\",\"kubernetes.io/os\":\"linux\"}}}}}"
+}
+
 if kind get clusters | grep -qx "${CLUSTER_NAME}"; then
   if [[ "${KIND_DELETE_EXISTING}" == "1" ]]; then
     echo "kind cluster '${CLUSTER_NAME}' exists -> deleting (KIND_DELETE_EXISTING=1)"
@@ -179,6 +204,7 @@ echo "Installing ingress-nginx (kind recommended manifest)..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 
 wait_for_ingress_admission
+pin_ingress_controller_to_control_plane
 
 echo "Waiting for ingress-nginx controller..."
 kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=180s

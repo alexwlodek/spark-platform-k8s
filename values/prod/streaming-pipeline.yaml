@@ -1,21 +1,59 @@
-# PROD overrides example (MSK + S3):
-# generator:
-#   kafka:
-#     bootstrapServers: b-1.msk.example.amazonaws.com:9092,b-2.msk.example.amazonaws.com:9092
-# sparkApplication:
-#   arguments:
-#     - --kafka-bootstrap-servers
-#     - b-1.msk.example.amazonaws.com:9092,b-2.msk.example.amazonaws.com:9092
-#     - --kafka-topic
-#     - orders
-#     - --window-duration
-#     - 1 minute
-#     - --watermark-delay
-#     - 2 minutes
-#     - --checkpoint-location
-#     - s3a://my-prod-lake/checkpoints/orders-v1
-#     - --output-path
-#     - s3a://my-prod-lake/silver/orders_per_minute
-#   sparkConf:
-#     spark.hadoop.fs.s3a.endpoint: s3.amazonaws.com
-#     spark.hadoop.fs.s3a.path.style.access: "false"
+generator:
+  # Prod path expects external producers by default.
+  enabled: false
+  kafka:
+    # Replace with MSK bootstrap servers.
+    bootstrapServers: b-1.data-platform-prod.xxxxxx.c2.kafka.eu-central-1.amazonaws.com:9092,b-2.data-platform-prod.xxxxxx.c2.kafka.eu-central-1.amazonaws.com:9092
+
+sparkApplication:
+  image:
+    pullPolicy: IfNotPresent
+  arguments:
+    - --kafka-bootstrap-servers
+    - b-1.data-platform-prod.xxxxxx.c2.kafka.eu-central-1.amazonaws.com:9092,b-2.data-platform-prod.xxxxxx.c2.kafka.eu-central-1.amazonaws.com:9092
+    - --kafka-topic
+    - commerce.order.lifecycle.v1,commerce.payment.events.v1,commerce.generator.technical.v1
+    - --window-duration
+    - 1 minute
+    - --watermark-delay
+    - 2 minutes
+    - --checkpoint-location
+    - s3a://data-platform-prod-lake/checkpoints/commerce-events-v1
+    - --bronze-table
+    - iceberg_nessie.streaming.bronze_commerce_events
+    - --gold-table
+    - iceberg_nessie.streaming.gold_order_metrics_minute
+    - --query-name
+    - commerce_events_streaming
+    - --trigger-processing-time
+    - 10 seconds
+    - --metrics-port
+    - "8090"
+  sparkConf:
+    spark.sql.catalog.iceberg_nessie.uri: http://storage-nessie.apps.svc.cluster.local:19120/api/v2
+    spark.sql.catalog.iceberg_nessie.warehouse: s3://data-platform-prod-lake/iceberg
+    spark.sql.catalog.iceberg_nessie.s3.endpoint: s3.amazonaws.com
+    spark.sql.catalog.iceberg_nessie.s3.path-style-access: "false"
+    spark.sql.catalog.iceberg_nessie.s3.region: eu-central-1
+    spark.sql.catalog.iceberg_nessie.client.region: eu-central-1
+    spark.hadoop.fs.s3a.endpoint: s3.amazonaws.com
+    spark.hadoop.fs.s3a.path.style.access: "false"
+    spark.hadoop.fs.s3a.connection.ssl.enabled: "true"
+    spark.hadoop.fs.s3a.aws.credentials.provider: com.amazonaws.auth.WebIdentityTokenCredentialsProvider
+  driver:
+    memory: "2g"
+    env:
+      - name: PYTHONUNBUFFERED
+        value: "1"
+      - name: AWS_REGION
+        value: "eu-central-1"
+      - name: AWS_DEFAULT_REGION
+        value: "eu-central-1"
+  executor:
+    instances: 2
+    memory: "2g"
+    env:
+      - name: AWS_REGION
+        value: "eu-central-1"
+      - name: AWS_DEFAULT_REGION
+        value: "eu-central-1"

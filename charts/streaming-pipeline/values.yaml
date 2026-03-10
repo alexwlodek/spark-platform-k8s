@@ -8,11 +8,37 @@ generator:
   orderRatePerSecond: 20
   minAmount: 10
   maxAmount: 500
+  minItems: 1
+  maxItems: 4
+  seed: 42
+  scenarioProfile: balanced
+  failureProfile: balanced
+  paymentFailureRate: 0.12
+  logLevel: INFO
+  environment: dev
+  emitSummaryEveryN: 25
+  metricsPort: 9108
+  healthPort: 8081
   kafka:
     bootstrapServers: streaming-kafka.apps.svc.cluster.local:9092
-    topic: orders
+    orderLifecycleTopic: commerce.order.lifecycle.v1
+    paymentEventsTopic: commerce.payment.events.v1
+    technicalEventsTopic: commerce.generator.technical.v1
     acks: all
     compressionType: none
+    publishTimeoutSeconds: 10
+    manualRetries: 3
+    retryBackoffSeconds: 1
+  service:
+    enabled: true
+    type: ClusterIP
+  monitoring:
+    podMonitor:
+      enabled: true
+      namespace: ""
+      labels: {}
+      interval: 15s
+      scrapeTimeout: 10s
   resources: {}
 
 sparkApplication:
@@ -79,6 +105,11 @@ grafanaDashboard:
   namespace: ""
   labels: {}
 
+generatorGrafanaDashboard:
+  enabled: true
+  namespace: ""
+  labels: {}
+
 prometheusRule:
   enabled: true
   namespace: ""
@@ -92,3 +123,19 @@ prometheusRule:
       enabled: true
       for: 10m
       thresholdSeconds: 120
+
+generatorPrometheusRule:
+  enabled: true
+  namespace: ""
+  labels: {}
+  alerts:
+    noOrders:
+      enabled: true
+      for: 5m
+    schemaFailures:
+      enabled: true
+      for: 1m
+    publishFailureRatio:
+      enabled: true
+      for: 10m
+      threshold: 0.02

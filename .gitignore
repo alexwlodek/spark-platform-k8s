@@ -23,3 +23,7 @@ crash.*.log
 
 /scripts/dev-aws-sm-seed.sh
 /scripts/dev-aws-sm-auth.sh
+
+# Python caches
+__pycache__/
+*.pyc

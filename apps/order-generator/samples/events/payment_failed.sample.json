@@ -1,0 +1,30 @@
+{
+  "event_id": "evt-36b6d2e6-92d4-4a18-b45b-e3bf3c679002",
+  "event_type": "payment_failed",
+  "event_version": 1,
+  "event_time": "2026-03-10T12:00:18.417Z",
+  "producer": "order-generator",
+  "environment": "dev",
+  "run_id": "run-20260310-120000-seed42",
+  "trace_id": "trc-1f0f8db0-6f1d-4d72-a3e7-e0b4c2db5001",
+  "schema_ref": "schemas/business/payment_failed.v1.json",
+  "partition_key": "ord-000123",
+  "idempotency_key": "ord-000123:payment_failed:1",
+  "order_id": "ord-000123",
+  "customer_id": "cust-01042",
+  "session_id": "ses-20260310-009991",
+  "payment_id": "pay-000123",
+  "payload": {
+    "amount": 114.43,
+    "currency": "USD",
+    "payment_method": "card",
+    "provider": "adyen-sim",
+    "attempt_no": 1,
+    "channel": "mobile",
+    "region": "eu-central-1",
+    "customer_segment": "loyal",
+    "failure_reason_code": "insufficient_funds",
+    "failure_reason_group": "issuer_decline",
+    "is_retryable": true
+  }
+}

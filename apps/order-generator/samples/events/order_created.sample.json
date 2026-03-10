@@ -1,0 +1,51 @@
+{
+  "event_id": "evt-9d7f4f3b-1b68-4ea1-8df9-1a2f6d4e9001",
+  "event_type": "order_created",
+  "event_version": 1,
+  "event_time": "2026-03-10T12:00:15.123Z",
+  "producer": "order-generator",
+  "environment": "dev",
+  "run_id": "run-20260310-120000-seed42",
+  "trace_id": "trc-1f0f8db0-6f1d-4d72-a3e7-e0b4c2db5001",
+  "schema_ref": "schemas/business/order_created.v1.json",
+  "partition_key": "ord-000123",
+  "idempotency_key": "ord-000123:order_created:1",
+  "order_id": "ord-000123",
+  "customer_id": "cust-01042",
+  "session_id": "ses-20260310-009991",
+  "payload": {
+    "channel": "mobile",
+    "device_type": "ios",
+    "campaign_id": "loyalty",
+    "region": "eu-central-1",
+    "country": "PL",
+    "currency": "USD",
+    "customer_segment": "loyal",
+    "customer_tenure_days": 420,
+    "items": [
+      {
+        "sku": "sku-headphones-01",
+        "category": "audio",
+        "brand": "AcoustiCo",
+        "qty": 1,
+        "unit_price": 79.99,
+        "inventory_class": "fast",
+        "seasonality_tag": "always_on"
+      },
+      {
+        "sku": "sku-cable-07",
+        "category": "accessories",
+        "brand": "CableLab",
+        "qty": 2,
+        "unit_price": 9.99,
+        "inventory_class": "fast",
+        "seasonality_tag": "always_on"
+      }
+    ],
+    "subtotal": 99.97,
+    "discount_total": 8.0,
+    "tax_total": 17.47,
+    "shipping_total": 4.99,
+    "grand_total": 114.43
+  }
+}

@@ -24,21 +24,60 @@ spec:
         - name: order-generator
           image: "{{ required "generator.image.repository must be set" .Values.generator.image.repository }}:{{ .Values.generator.image.tag }}"
           imagePullPolicy: {{ .Values.generator.image.pullPolicy | quote }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.generator.metricsPort }}
+              protocol: TCP
+            - name: health
+              containerPort: {{ .Values.generator.healthPort }}
+              protocol: TCP
           env:
+            - name: ENVIRONMENT
+              value: {{ .Values.generator.environment | quote }}
+            - name: SEED
+              value: {{ .Values.generator.seed | quote }}
+            - name: SCENARIO_PROFILE
+              value: {{ .Values.generator.scenarioProfile | quote }}
+            - name: FAILURE_PROFILE
+              value: {{ .Values.generator.failureProfile | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.generator.logLevel | quote }}
+            - name: METRICS_PORT
+              value: {{ .Values.generator.metricsPort | quote }}
+            - name: HEALTH_PORT
+              value: {{ .Values.generator.healthPort | quote }}
+            - name: EMIT_SUMMARY_EVERY_N
+              value: {{ .Values.generator.emitSummaryEveryN | quote }}
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: {{ .Values.generator.kafka.bootstrapServers | quote }}
-            - name: KAFKA_TOPIC
-              value: {{ .Values.generator.kafka.topic | quote }}
+            - name: TOPIC_ORDER_LIFECYCLE
+              value: {{ .Values.generator.kafka.orderLifecycleTopic | quote }}
+            - name: TOPIC_PAYMENT_EVENTS
+              value: {{ .Values.generator.kafka.paymentEventsTopic | quote }}
+            - name: TOPIC_TECHNICAL_EVENTS
+              value: {{ .Values.generator.kafka.technicalEventsTopic | quote }}
             - name: KAFKA_ACKS
               value: {{ .Values.generator.kafka.acks | quote }}
             - name: KAFKA_COMPRESSION_TYPE
               value: {{ .Values.generator.kafka.compressionType | quote }}
+            - name: KAFKA_PUBLISH_TIMEOUT_SECONDS
+              value: {{ .Values.generator.kafka.publishTimeoutSeconds | quote }}
+            - name: KAFKA_MANUAL_RETRIES
+              value: {{ .Values.generator.kafka.manualRetries | quote }}
+            - name: KAFKA_RETRY_BACKOFF_SECONDS
+              value: {{ .Values.generator.kafka.retryBackoffSeconds | quote }}
             - name: ORDER_RATE_PER_SECOND
               value: {{ .Values.generator.orderRatePerSecond | quote }}
             - name: ORDER_MIN_AMOUNT
               value: {{ .Values.generator.minAmount | quote }}
             - name: ORDER_MAX_AMOUNT
               value: {{ .Values.generator.maxAmount | quote }}
+            - name: ORDER_MIN_ITEMS
+              value: {{ .Values.generator.minItems | quote }}
+            - name: ORDER_MAX_ITEMS
+              value: {{ .Values.generator.maxItems | quote }}
+            - name: PAYMENT_FAILURE_RATE
+              value: {{ .Values.generator.paymentFailureRate | quote }}
             - name: PYTHONUNBUFFERED
               value: "1"
 {{- with .Values.generator.resources }}

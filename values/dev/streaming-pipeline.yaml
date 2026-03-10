@@ -2,6 +2,7 @@ generator:
   image:
     pullPolicy: Always
   orderRatePerSecond: 5
+  environment: dev
 
 sparkApplication:
   image:

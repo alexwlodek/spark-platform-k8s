@@ -19,6 +19,22 @@ ENV_VALUES_FILE="values/${DEPLOY_ENV}/argocd.yaml"
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
 require kubectl
 
+ensure_bootstrap_argocd_secret() {
+  local bootstrap_secret_name="argocd-secret"
+  local bootstrap_secret_key
+
+  if kubectl -n "${ARGO_NAMESPACE}" get secret "${bootstrap_secret_name}" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "Creating bootstrap ${ARGO_NAMESPACE}/${bootstrap_secret_name} (server.secretkey only)..."
+  bootstrap_secret_key="$(head -c 32 /dev/urandom | base64 | tr -d '\r\n')"
+
+  kubectl -n "${ARGO_NAMESPACE}" create secret generic "${bootstrap_secret_name}" \
+    --from-literal=server.secretkey="${bootstrap_secret_key}" \
+    --dry-run=client -o yaml | kubectl apply -f -
+}
+
 if [[ ! -f "${ROOT_FILE}" ]]; then
   echo "Missing root app manifest: ${ROOT_FILE}" >&2
   exit 1
@@ -52,7 +68,7 @@ kubectl get ns "${ARGO_NAMESPACE}" >/dev/null 2>&1 || kubectl create ns "${ARGO_
 if [[ "${SKIP_INSTALL}" != "1" ]]; then
   require helm
 
-  echo "Installing Argo CD chart (version ${ARGOCD_CHART_VERSION})..."
+  echo "Installing Argo CD chart (version ${ARGOCD_CHART_VERSION}) without rollout wait..."
   helm repo add "${ARGO_HELM_REPO_NAME}" "${ARGO_HELM_REPO_URL}" --force-update >/dev/null
   helm repo update "${ARGO_HELM_REPO_NAME}" >/dev/null
 
@@ -61,15 +77,28 @@ if [[ "${SKIP_INSTALL}" != "1" ]]; then
     --version "${ARGOCD_CHART_VERSION}" \
     -f "${COMMON_VALUES_FILE}" \
     -f "${ENV_VALUES_FILE}" \
-    --wait \
     --timeout "${ROLLOUT_TIMEOUT}"
 else
   echo "Skipping Argo CD install/upgrade (SKIP_INSTALL=1)."
 fi
 
+echo "Waiting for Argo CD CRDs..."
+kubectl wait --for=condition=Established --timeout="${ROLLOUT_TIMEOUT}" crd/appprojects.argoproj.io crd/applications.argoproj.io
+
+ensure_bootstrap_argocd_secret
+
 echo "Applying AppProject + root application for '${DEPLOY_ENV}'..."
 kubectl apply -n "${ARGO_NAMESPACE}" -f "${PROJECT_FILE}"
 kubectl apply -n "${ARGO_NAMESPACE}" -f "${ROOT_FILE}"
+
+echo "Waiting for Argo CD control plane to reconcile bootstrap apps..."
+kubectl rollout status -n "${ARGO_NAMESPACE}" "statefulset/${ARGO_RELEASE_NAME}-application-controller" --timeout="${ROLLOUT_TIMEOUT}"
+kubectl rollout status -n "${ARGO_NAMESPACE}" "deployment/${ARGO_RELEASE_NAME}-repo-server" --timeout="${ROLLOUT_TIMEOUT}"
+kubectl rollout status -n "${ARGO_NAMESPACE}" "deployment/${ARGO_RELEASE_NAME}-server" --timeout="${ROLLOUT_TIMEOUT}"
+
+if kubectl get deployment -n "${ARGO_NAMESPACE}" "${ARGO_RELEASE_NAME}-dex-server" >/dev/null 2>&1; then
+  kubectl rollout status -n "${ARGO_NAMESPACE}" "deployment/${ARGO_RELEASE_NAME}-dex-server" --timeout="${ROLLOUT_TIMEOUT}"
+fi
 
 echo "✅ Argo CD bootstrapped for '${DEPLOY_ENV}'."
 echo "Check: kubectl -n ${ARGO_NAMESPACE} get applications"

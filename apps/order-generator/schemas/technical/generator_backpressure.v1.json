@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/technical/generator_backpressure.v1.json",
+  "title": "generator_backpressure v1",
+  "type": "object",
+  "required": ["event_type", "event_version", "schema_ref", "payload"],
+  "properties": {
+    "event_type": { "const": "generator_backpressure" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/technical/generator_backpressure.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": ["blocked_seconds", "target_interval_seconds", "queue_depth"],
+      "properties": {
+        "blocked_seconds": { "type": "number", "minimum": 0 },
+        "target_interval_seconds": { "type": "number", "exclusiveMinimum": 0 },
+        "queue_depth": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

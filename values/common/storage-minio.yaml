@@ -9,8 +9,6 @@ mcImage:
   pullPolicy: IfNotPresent
 
 auth:
-  rootUser: minio
-  rootPassword: minio123
 
 service:
   apiPort: 9000

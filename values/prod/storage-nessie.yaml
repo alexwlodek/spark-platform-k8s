@@ -1,3 +1,15 @@
-# PROD placeholder:
-# Keep Nessie externalized/highly-available and connect it to managed
-# PostgreSQL. Restrict access via ingress/authn/authz and TLS.
+# PROD overrides for Nessie running in EKS with managed PostgreSQL backend.
+database:
+  # Replace with real RDS endpoint.
+  host: data-platform-prod-nessie.abcdefghijkl.eu-central-1.rds.amazonaws.com
+  port: 5432
+  name: nessie
+  existingSecret: platform-nessie-creds
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 768Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi

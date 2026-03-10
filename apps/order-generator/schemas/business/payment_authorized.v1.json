@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/payment_authorized.v1.json",
+  "title": "payment_authorized v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payment_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "payment_authorized" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/payment_authorized.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency",
+        "payment_method",
+        "provider",
+        "attempt_no",
+        "channel",
+        "region",
+        "customer_segment",
+        "auth_code"
+      ],
+      "properties": {
+        "amount": { "type": "number", "exclusiveMinimum": 0 },
+        "currency": { "type": "string" },
+        "payment_method": { "type": "string" },
+        "provider": { "type": "string" },
+        "attempt_no": { "type": "integer", "minimum": 1 },
+        "channel": { "type": "string" },
+        "region": { "type": "string" },
+        "customer_segment": { "type": "string" },
+        "auth_code": { "type": "string", "minLength": 4 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

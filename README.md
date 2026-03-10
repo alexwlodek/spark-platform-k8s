@@ -4,7 +4,8 @@
 
 Current setup:
 
-- `dev` cluster on kind: `clusters/dev` + `values/dev`
+- `dev` cluster on kind (`data-platform-dev`): `clusters/dev` + `values/dev`
+- `prod` cluster on EKS (`data-platform-prod`): `clusters/prod` + `values/prod`
 - shared values: `values/common`
 
 GitOps uses app-of-apps (`root.yaml`) and in-cluster destination (`https://kubernetes.default.svc`).
@@ -16,6 +17,8 @@ scripts/dev-up.sh
 ```
 
 This creates a kind cluster, installs ingress-nginx and bootstraps Argo CD with app-of-apps.
+Before Argo CD bootstrap, `scripts/dev-up.sh` verifies `external-secrets/awssm-credentials`.
+If the secret is missing but `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are exported, it will run `scripts/dev-aws-sm-auth.sh` automatically; otherwise it stops with instructions.
 
 Default kind Kubernetes image is `kindest/node:v1.34.2` (override via `KIND_IMAGE=...`).
 If you already have an older cluster, recreate it with `KIND_DELETE_EXISTING=1 scripts/dev-up.sh`.
@@ -40,16 +43,50 @@ Hosts:
 
 ```bash
 DEPLOY_ENV=dev KUBE_CONTEXT=kind-data-platform-dev scripts/bootstrap-argocd.sh
+DEPLOY_ENV=prod KUBE_CONTEXT=data-platform-prod scripts/bootstrap-argocd.sh
 ```
 
 Wrappers:
 
 - `scripts/dev-bootstrap-argocd.sh`
+- `scripts/prod-bootstrap-argocd.sh`
 
 By default bootstrap installs Argo CD via pinned Helm chart version (`7.7.0`) and then applies:
 
 - `clusters/<env>/projects/platform.yaml`
 - `clusters/<env>/root.yaml`
+
+## PROD infrastructure bootstrap (AWS/EKS)
+
+Terraform for production infrastructure lives in:
+
+- `infra/envs/prod`
+
+This stack creates:
+
+- VPC (3 AZ)
+- EKS cluster `data-platform-prod`
+- IRSA roles (`aws-load-balancer-controller`, `external-secrets`, `ebs-csi`)
+- EBS CSI addon
+- AWS Load Balancer Controller
+
+Suggested flow:
+
+```bash
+cp infra/envs/prod/terraform.tfvars.example infra/envs/prod/terraform.tfvars
+terraform -chdir=infra/envs/prod init
+terraform -chdir=infra/envs/prod plan
+terraform -chdir=infra/envs/prod apply
+
+# configure kubectl context (see terraform output too)
+aws eks update-kubeconfig --region eu-central-1 --name data-platform-prod --alias data-platform-prod
+
+# bootstrap Argo CD on prod cluster
+scripts/prod-bootstrap-argocd.sh
+```
+
+Phase-1 production root app ships with `spark-operator` on automated sync.
+Security apps (`security-external-secrets`, `security-aws-secretsmanager`) are present but intentionally manual-sync for phase 2.
 
 ## Kind image cache (GHCR)
 
@@ -139,7 +176,7 @@ Main assets:
 - values:
   - common: `values/common/streaming-*.yaml`, `values/common/storage-*.yaml`, `values/common/bi-*.yaml`
   - dev: `values/dev/streaming-*.yaml`, `values/dev/storage-*.yaml`, `values/dev/bi-*.yaml`
-  - prod placeholders: `values/prod/streaming-*.yaml`, `values/prod/storage-*.yaml`, `values/prod/bi-*.yaml`
+  - prod overrides: `values/prod/streaming-*.yaml`, `values/prod/storage-*.yaml`, `values/prod/bi-*.yaml`
 
 Spark job performs:
 
@@ -155,7 +192,7 @@ Baseline for secret management in DEV:
 
 - Argo app: `clusters/dev/apps/security-external-secrets.yaml`
 - values: `values/common/external-secrets.yaml`, `values/dev/external-secrets.yaml`
-- Helm source: `https://charts.external-secrets.io` (chart `external-secrets`, `targetRevision: 0.19.2`)
+- Helm source: `https://charts.external-secrets.io` (chart `external-secrets`, `targetRevision: 1.3.2`)
 
 Charts prepared for external secret injection (`existingSecret` support):
 
@@ -202,6 +239,22 @@ Defaults used by `ExternalSecret` manifests:
 - `/spark-platform/dev/storage-minio`
 - `/spark-platform/dev/storage-nessie`
 - `/spark-platform/dev/storage-nessie-db`
+
+## AWS Secrets Manager on PROD (EKS)
+
+Production manifests live in:
+
+- `clusters/prod/apps/security-external-secrets.yaml`
+- `clusters/prod/apps/security-aws-secretsmanager.yaml`
+- `clusters/prod/security/aws-secretsmanager/*`
+
+Defaults used by production `ExternalSecret` manifests:
+
+- `/spark-platform/prod/argocd`
+- `/spark-platform/prod/storage-minio`
+- `/spark-platform/prod/storage-nessie`
+- `/spark-platform/prod/storage-nessie-db`
+- `/spark-platform/prod/monitoring-grafana`
 
 ## CI/CD for Spark image
 

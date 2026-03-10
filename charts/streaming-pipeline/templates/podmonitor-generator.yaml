@@ -1,0 +1,26 @@
+{{- if and .Values.generator.enabled .Values.generator.monitoring.podMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "streaming-pipeline.fullname" . }}-generator
+  namespace: {{ default .Release.Namespace .Values.generator.monitoring.podMonitor.namespace }}
+  labels:
+{{ include "streaming-pipeline.labels" . | indent 4 }}
+{{- with .Values.generator.monitoring.podMonitor.labels }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/name: {{ include "streaming-pipeline.name" . | quote }}
+      app.kubernetes.io/component: generator
+  podMetricsEndpoints:
+    - path: /metrics
+      targetPort: metrics
+      interval: {{ .Values.generator.monitoring.podMonitor.interval | quote }}
+      scrapeTimeout: {{ .Values.generator.monitoring.podMonitor.scrapeTimeout | quote }}
+{{- end }}

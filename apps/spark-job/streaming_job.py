@@ -5,8 +5,18 @@ from datetime import datetime, timezone
 
 from prometheus_client import Counter, Gauge, start_http_server
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col, count, from_json, lit, round as spark_round, sum as spark_sum, to_timestamp, window
-from pyspark.sql.types import DoubleType, IntegerType, StringType, StructField, StructType
+from pyspark.sql.functions import (
+    col,
+    current_timestamp,
+    date_trunc,
+    expr,
+    get_json_object,
+    lit,
+    round as spark_round,
+    sum as spark_sum,
+    to_timestamp,
+    when,
+)
 
 INPUT_ROWS_PER_SECOND = Gauge(
     "streaming_input_rows_per_second",
@@ -33,18 +43,28 @@ FAILURE_COUNT = Counter(
     "Total number of Structured Streaming failures",
     ["query"],
 )
+PARSE_FAILURE_COUNT = Counter(
+    "streaming_parse_failure_count_total",
+    "Total number of streaming records with parsing failures",
+    ["query"],
+)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Orders Structured Streaming job")
+    parser = argparse.ArgumentParser(description="Commerce Structured Streaming job")
     parser.add_argument("--kafka-bootstrap-servers", default="streaming-kafka.apps.svc.cluster.local:9092")
-    parser.add_argument("--kafka-topic", default="orders")
+    parser.add_argument(
+        "--kafka-topic",
+        default="commerce.order.lifecycle.v1,commerce.payment.events.v1,commerce.generator.technical.v1",
+    )
     parser.add_argument("--window-duration", default="1 minute")
     parser.add_argument("--watermark-delay", default="2 minutes")
     parser.add_argument("--checkpoint-location", required=True)
+    parser.add_argument("--bronze-table", default="iceberg_nessie.streaming.bronze_commerce_events")
+    parser.add_argument("--gold-table", default="iceberg_nessie.streaming.gold_order_metrics_minute")
     parser.add_argument("--output-path", default=None)
     parser.add_argument("--output-table", default=None)
-    parser.add_argument("--query-name", default="orders_revenue_per_minute")
+    parser.add_argument("--query-name", default="commerce_events_streaming")
     parser.add_argument("--trigger-processing-time", default="10 seconds")
     parser.add_argument("--metrics-port", type=int, default=8090)
     return parser.parse_args()
@@ -88,45 +108,220 @@ def update_stream_metrics(query_name: str, progress: dict[str, object] | None) -
     QUERY_LAG_SECONDS.labels(query=query_name).set(lag_seconds)
 
 
-def write_batch_to_path(output_path: str):
-    def _write(df: DataFrame, batch_id: int) -> None:
-        if df.rdd.isEmpty():
-            return
-
-        (
-            df.withColumn("batch_id", lit(batch_id))
-            .write.mode("append")
-            .parquet(output_path)
-        )
-
-    return _write
-
-
-def ensure_iceberg_table(spark: SparkSession, table_name: str) -> None:
-    # Auto-create schema/table so first deployment can start writing immediately.
+def ensure_schema(spark: SparkSession, table_name: str) -> None:
     parts = table_name.split(".")
     if len(parts) >= 2:
         schema_name = ".".join(parts[:-1])
         spark.sql(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
 
+
+def ensure_bronze_table(spark: SparkSession, table_name: str) -> None:
+    ensure_schema(spark, table_name)
+    spark.sql(
+        f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+          topic STRING,
+          kafka_key STRING,
+          kafka_partition INT,
+          kafka_offset BIGINT,
+          kafka_timestamp TIMESTAMP,
+          raw_json STRING,
+          event_id STRING,
+          event_type STRING,
+          event_version INT,
+          event_time TIMESTAMP,
+          producer STRING,
+          environment STRING,
+          run_id STRING,
+          trace_id STRING,
+          schema_ref STRING,
+          partition_key STRING,
+          order_id STRING,
+          customer_id STRING,
+          session_id STRING,
+          payment_id STRING,
+          payload_json STRING,
+          parse_status STRING,
+          amount DOUBLE,
+          channel STRING,
+          region STRING,
+          customer_segment STRING,
+          payment_status STRING,
+          payment_failure_reason_group STRING,
+          ingested_at TIMESTAMP
+        ) USING iceberg
+        PARTITIONED BY (days(event_time), event_type)
+        """
+    )
+
+
+def ensure_gold_table(spark: SparkSession, table_name: str) -> None:
+    ensure_schema(spark, table_name)
     spark.sql(
         f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
           window_start TIMESTAMP,
           window_end TIMESTAMP,
-          events BIGINT,
-          revenue DOUBLE
+          region STRING,
+          channel STRING,
+          customer_segment STRING,
+          orders_created BIGINT,
+          payment_authorized BIGINT,
+          payment_failed BIGINT,
+          gross_revenue DOUBLE,
+          payment_failure_rate DOUBLE,
+          batch_id BIGINT,
+          processed_at TIMESTAMP
         ) USING iceberg
+        PARTITIONED BY (days(window_start), region)
         """
     )
 
 
-def write_batch_to_table(output_table: str):
-    def _write(df: DataFrame, _batch_id: int) -> None:
+def build_parsed_stream(source: DataFrame) -> DataFrame:
+    raw = source.selectExpr(
+        "topic",
+        "CAST(key AS STRING) AS kafka_key",
+        "CAST(value AS STRING) AS raw_json",
+        "partition AS kafka_partition",
+        "offset AS kafka_offset",
+        "timestamp AS kafka_timestamp",
+    )
+
+    parsed = (
+        raw.withColumn("event_id", get_json_object(col("raw_json"), "$.event_id"))
+        .withColumn("event_type", get_json_object(col("raw_json"), "$.event_type"))
+        .withColumn("event_version", get_json_object(col("raw_json"), "$.event_version").cast("int"))
+        .withColumn("event_time", to_timestamp(get_json_object(col("raw_json"), "$.event_time")))
+        .withColumn("producer", get_json_object(col("raw_json"), "$.producer"))
+        .withColumn("environment", get_json_object(col("raw_json"), "$.environment"))
+        .withColumn("run_id", get_json_object(col("raw_json"), "$.run_id"))
+        .withColumn("trace_id", get_json_object(col("raw_json"), "$.trace_id"))
+        .withColumn("schema_ref", get_json_object(col("raw_json"), "$.schema_ref"))
+        .withColumn("partition_key", get_json_object(col("raw_json"), "$.partition_key"))
+        .withColumn("order_id", get_json_object(col("raw_json"), "$.order_id"))
+        .withColumn("customer_id", get_json_object(col("raw_json"), "$.customer_id"))
+        .withColumn("session_id", get_json_object(col("raw_json"), "$.session_id"))
+        .withColumn("payment_id", get_json_object(col("raw_json"), "$.payment_id"))
+        .withColumn("payload_json", get_json_object(col("raw_json"), "$.payload"))
+        .withColumn(
+            "parse_status",
+            when(
+                col("event_id").isNotNull() & col("event_type").isNotNull() & col("event_time").isNotNull(),
+                lit("parsed"),
+            ).otherwise(lit("invalid")),
+        )
+        .withColumn(
+            "channel",
+            when(col("event_type") == "order_created", get_json_object(col("raw_json"), "$.payload.channel")).otherwise(
+                get_json_object(col("raw_json"), "$.payload.channel")
+            ),
+        )
+        .withColumn("region", get_json_object(col("raw_json"), "$.payload.region"))
+        .withColumn("customer_segment", get_json_object(col("raw_json"), "$.payload.customer_segment"))
+        .withColumn(
+            "amount",
+            when(
+                col("event_type") == "order_created",
+                get_json_object(col("raw_json"), "$.payload.grand_total").cast("double"),
+            ).otherwise(get_json_object(col("raw_json"), "$.payload.amount").cast("double")),
+        )
+        .withColumn(
+            "payment_status",
+            when(col("event_type") == "payment_authorized", lit("authorized"))
+            .when(col("event_type") == "payment_failed", lit("failed"))
+            .otherwise(lit(None)),
+        )
+        .withColumn(
+            "payment_failure_reason_group",
+            get_json_object(col("raw_json"), "$.payload.failure_reason_group"),
+        )
+    )
+    return parsed
+
+
+def write_batch_to_tables(query_name: str, bronze_table: str, gold_table: str):
+    def _write(df: DataFrame, batch_id: int) -> None:
         if df.rdd.isEmpty():
             return
 
-        df.writeTo(output_table).append()
+        materialized = df.withColumn("ingested_at", current_timestamp()).persist()
+
+        invalid_count = materialized.filter(col("parse_status") != "parsed").count()
+        if invalid_count:
+            PARSE_FAILURE_COUNT.labels(query=query_name).inc(float(invalid_count))
+
+        bronze_df = materialized.select(
+            "topic",
+            "kafka_key",
+            "kafka_partition",
+            "kafka_offset",
+            "kafka_timestamp",
+            "raw_json",
+            "event_id",
+            "event_type",
+            "event_version",
+            "event_time",
+            "producer",
+            "environment",
+            "run_id",
+            "trace_id",
+            "schema_ref",
+            "partition_key",
+            "order_id",
+            "customer_id",
+            "session_id",
+            "payment_id",
+            "payload_json",
+            "parse_status",
+            "amount",
+            "channel",
+            "region",
+            "customer_segment",
+            "payment_status",
+            "payment_failure_reason_group",
+            "ingested_at",
+        )
+        bronze_df.writeTo(bronze_table).append()
+
+        gold_source = materialized.filter(
+            (col("parse_status") == "parsed")
+            & col("event_type").isin("order_created", "payment_authorized", "payment_failed")
+            & col("event_time").isNotNull()
+        )
+
+        if not gold_source.rdd.isEmpty():
+            aggregated = (
+                gold_source.withColumn("window_start", date_trunc("minute", col("event_time")))
+                .withColumn("window_end", expr("window_start + INTERVAL 1 MINUTE"))
+                .groupBy("window_start", "window_end", "region", "channel", "customer_segment")
+                .agg(
+                    spark_sum(when(col("event_type") == "order_created", 1).otherwise(0)).alias("orders_created"),
+                    spark_sum(when(col("event_type") == "payment_authorized", 1).otherwise(0)).alias(
+                        "payment_authorized"
+                    ),
+                    spark_sum(when(col("event_type") == "payment_failed", 1).otherwise(0)).alias("payment_failed"),
+                    spark_sum(when(col("event_type") == "order_created", col("amount")).otherwise(lit(0.0))).alias(
+                        "gross_revenue"
+                    ),
+                )
+                .withColumn("gross_revenue", spark_round(col("gross_revenue"), 2))
+                .withColumn(
+                    "payment_failure_rate",
+                    when(
+                        (col("payment_authorized") + col("payment_failed")) > 0,
+                        spark_round(
+                            col("payment_failed") / (col("payment_authorized") + col("payment_failed")),
+                            4,
+                        ),
+                    ).otherwise(lit(0.0)),
+                )
+                .withColumn("batch_id", lit(batch_id))
+                .withColumn("processed_at", current_timestamp())
+            )
+            aggregated.writeTo(gold_table).append()
+
+        materialized.unpersist()
 
     return _write
 
@@ -135,23 +330,12 @@ def main() -> None:
     args = parse_args()
     start_http_server(args.metrics_port)
 
-    spark = SparkSession.builder.appName("orders-streaming").getOrCreate()
+    if args.output_table:
+        args.gold_table = args.output_table
 
-    if not args.output_path and not args.output_table:
-        raise ValueError("Either --output-path or --output-table must be provided.")
-
-    schema = StructType(
-        [
-            StructField("event_id", StringType(), False),
-            StructField("event_time", StringType(), False),
-            StructField("order_id", StringType(), False),
-            StructField("customer_id", StringType(), False),
-            StructField("items", IntegerType(), False),
-            StructField("amount", DoubleType(), False),
-            StructField("currency", StringType(), False),
-            StructField("region", StringType(), False),
-        ]
-    )
+    spark = SparkSession.builder.appName("commerce-events-streaming").getOrCreate()
+    ensure_bronze_table(spark, args.bronze_table)
+    ensure_gold_table(spark, args.gold_table)
 
     source = (
         spark.readStream.format("kafka")
@@ -162,50 +346,21 @@ def main() -> None:
         .load()
     )
 
-    parsed = (
-        source.selectExpr("CAST(value AS STRING) AS payload")
-        .select(from_json(col("payload"), schema).alias("event"))
-        .select("event.*")
-        .withColumn("event_time", to_timestamp(col("event_time")))
-        .where(col("event_time").isNotNull())
-    )
-
-    aggregated = (
-        parsed.withWatermark("event_time", args.watermark_delay)
-        .groupBy(window(col("event_time"), args.window_duration).alias("window"))
-        .agg(
-            count("*").alias("events"),
-            spark_round(spark_sum(col("amount")), 2).alias("revenue"),
-        )
-        .select(
-            col("window.start").alias("window_start"),
-            col("window.end").alias("window_end"),
-            col("events"),
-            col("revenue"),
-        )
-    )
-
-    sink_description: str
-    if args.output_table:
-        ensure_iceberg_table(spark, args.output_table)
-        batch_writer = write_batch_to_table(args.output_table)
-        sink_description = f"output_table={args.output_table}"
-    else:
-        batch_writer = write_batch_to_path(args.output_path)
-        sink_description = f"output_path={args.output_path}"
+    parsed = build_parsed_stream(source)
 
     query = (
-        aggregated.writeStream.outputMode("append")
-        .queryName(args.query_name)
-        .foreachBatch(batch_writer)
+        parsed.withWatermark("event_time", args.watermark_delay)
+        .writeStream.queryName(args.query_name)
+        .foreachBatch(write_batch_to_tables(args.query_name, args.bronze_table, args.gold_table))
         .option("checkpointLocation", args.checkpoint_location)
         .trigger(processingTime=args.trigger_processing_time)
         .start()
     )
 
     print(
-        "[orders-streaming] started "
-        f"query={args.query_name} topic={args.kafka_topic} checkpoint={args.checkpoint_location} {sink_description}"
+        "[commerce-events-streaming] started "
+        f"query={args.query_name} topics={args.kafka_topic} checkpoint={args.checkpoint_location} "
+        f"bronze_table={args.bronze_table} gold_table={args.gold_table}"
     )
 
     try:

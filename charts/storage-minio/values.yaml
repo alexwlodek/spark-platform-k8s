@@ -11,7 +11,6 @@ mcImage:
 auth:
   existingSecret: ""
   rootUser: minio
-  rootPassword: minio123
 
 service:
   apiPort: 9000

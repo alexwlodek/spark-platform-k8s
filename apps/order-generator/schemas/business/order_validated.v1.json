@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/order_validated.v1.json",
+  "title": "order_validated v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "order_validated" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/order_validated.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "channel",
+        "region",
+        "currency",
+        "customer_segment",
+        "validation_status",
+        "rule_results",
+        "validated_grand_total"
+      ],
+      "properties": {
+        "channel": { "type": "string" },
+        "region": { "type": "string" },
+        "currency": { "type": "string" },
+        "customer_segment": { "type": "string" },
+        "validation_status": { "const": "validated" },
+        "rule_results": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["rule_code", "passed"],
+            "properties": {
+              "rule_code": { "type": "string" },
+              "passed": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "validated_grand_total": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

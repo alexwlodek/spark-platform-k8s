@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/technical/retry_exhausted.v1.json",
+  "title": "retry_exhausted v1",
+  "type": "object",
+  "required": ["event_type", "event_version", "schema_ref", "payload"],
+  "properties": {
+    "event_type": { "const": "retry_exhausted" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/technical/retry_exhausted.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": ["failed_event_type", "topic", "error_class", "detail", "retry_count"],
+      "properties": {
+        "failed_event_type": { "type": "string" },
+        "topic": { "type": "string" },
+        "error_class": { "type": "string" },
+        "detail": { "type": "string" },
+        "retry_count": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

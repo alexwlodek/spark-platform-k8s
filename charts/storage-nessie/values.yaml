@@ -18,7 +18,6 @@ database:
   port: 5432
   name: nessie
   username: nessie
-  password: nessie123
 
 resources:
   requests:

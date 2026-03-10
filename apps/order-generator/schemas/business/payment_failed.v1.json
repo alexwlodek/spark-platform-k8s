@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/payment_failed.v1.json",
+  "title": "payment_failed v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payment_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "payment_failed" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/payment_failed.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "amount",
+        "currency",
+        "payment_method",
+        "provider",
+        "attempt_no",
+        "channel",
+        "region",
+        "customer_segment",
+        "failure_reason_code",
+        "failure_reason_group",
+        "is_retryable"
+      ],
+      "properties": {
+        "amount": { "type": "number", "exclusiveMinimum": 0 },
+        "currency": { "type": "string" },
+        "payment_method": { "type": "string" },
+        "provider": { "type": "string" },
+        "attempt_no": { "type": "integer", "minimum": 1 },
+        "channel": { "type": "string" },
+        "region": { "type": "string" },
+        "customer_segment": { "type": "string" },
+        "failure_reason_code": { "type": "string" },
+        "failure_reason_group": { "type": "string" },
+        "is_retryable": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

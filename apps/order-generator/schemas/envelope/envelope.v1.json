@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/envelope/envelope.v1.json",
+  "title": "Canonical Commerce Event Envelope",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "event_time",
+    "producer",
+    "environment",
+    "run_id",
+    "trace_id",
+    "schema_ref",
+    "partition_key",
+    "idempotency_key",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "event_type": {
+      "type": "string",
+      "minLength": 3
+    },
+    "event_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "type": "string",
+      "minLength": 3
+    },
+    "environment": {
+      "type": "string",
+      "minLength": 2
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "schema_ref": {
+      "type": "string",
+      "pattern": "^schemas/"
+    },
+    "partition_key": {
+      "type": "string",
+      "minLength": 3
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 3
+    },
+    "order_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "payment_id": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

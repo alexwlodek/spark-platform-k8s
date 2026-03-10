@@ -8,11 +8,38 @@ generator:
   orderRatePerSecond: 20
   minAmount: 10
   maxAmount: 500
+  minItems: 1
+  maxItems: 4
+  seed: 42
+  scenarioProfile: balanced
+  failureProfile: balanced
+  paymentFailureRate: 0.12
+  logLevel: INFO
+  environment: dev
+  emitSummaryEveryN: 25
+  metricsPort: 9108
+  healthPort: 8081
   kafka:
     bootstrapServers: streaming-kafka.apps.svc.cluster.local:9092
-    topic: orders
+    orderLifecycleTopic: commerce.order.lifecycle.v1
+    paymentEventsTopic: commerce.payment.events.v1
+    technicalEventsTopic: commerce.generator.technical.v1
     acks: all
     compressionType: none
+    publishTimeoutSeconds: 10
+    manualRetries: 3
+    retryBackoffSeconds: 1
+  service:
+    enabled: true
+    type: ClusterIP
+  monitoring:
+    podMonitor:
+      enabled: true
+      namespace: ""
+      labels:
+        release: kube-prometheus-stack
+      interval: 15s
+      scrapeTimeout: 10s
   resources:
     requests:
       cpu: 100m
@@ -38,17 +65,19 @@ sparkApplication:
     - --kafka-bootstrap-servers
     - streaming-kafka.apps.svc.cluster.local:9092
     - --kafka-topic
-    - orders
+    - commerce.order.lifecycle.v1,commerce.payment.events.v1,commerce.generator.technical.v1
     - --window-duration
     - 1 minute
     - --watermark-delay
     - 2 minutes
     - --checkpoint-location
-    - s3a://streaming-lake/checkpoints/orders-v1
-    - --output-table
-    - iceberg_nessie.streaming.orders_per_minute
+    - s3a://streaming-lake/checkpoints/commerce-events-v1
+    - --bronze-table
+    - iceberg_nessie.streaming.bronze_commerce_events
+    - --gold-table
+    - iceberg_nessie.streaming.gold_order_metrics_minute
     - --query-name
-    - orders_revenue_per_minute
+    - commerce_events_streaming
     - --trigger-processing-time
     - 10 seconds
     - --metrics-port
@@ -92,7 +121,7 @@ sparkApplication:
         containerPort: 8090
         protocol: TCP
     labels:
-      streaming-query: orders-streaming
+      streaming-query: commerce-events-streaming
     env:
       - name: PYTHONUNBUFFERED
         value: "1"
@@ -107,7 +136,7 @@ sparkApplication:
     memory: "1024m"
     deleteOnTermination: true
     labels:
-      streaming-query: orders-streaming
+      streaming-query: commerce-events-streaming
     env:
       - name: AWS_REGION
         value: "eu-central-1"
@@ -124,7 +153,7 @@ metrics:
     scrapeTimeout: 10s
     selector:
       sparkRole: driver
-      streamingQuery: orders-streaming
+      streamingQuery: commerce-events-streaming
     endpoints:
       - path: /metrics/executors/prometheus
         targetPort: 4040
@@ -136,12 +165,17 @@ grafanaDashboard:
   namespace: ""
   labels: {}
 
+generatorGrafanaDashboard:
+  enabled: true
+  namespace: ""
+  labels: {}
+
 prometheusRule:
   enabled: true
   namespace: ""
   labels:
     release: kube-prometheus-stack
-  queryLabel: orders_revenue_per_minute
+  queryLabel: commerce_events_streaming
   alerts:
     jobFailed:
       enabled: true
@@ -150,3 +184,20 @@ prometheusRule:
       enabled: true
       for: 10m
       thresholdSeconds: 120
+
+generatorPrometheusRule:
+  enabled: true
+  namespace: ""
+  labels:
+    release: kube-prometheus-stack
+  alerts:
+    noOrders:
+      enabled: true
+      for: 5m
+    schemaFailures:
+      enabled: true
+      for: 1m
+    publishFailureRatio:
+      enabled: true
+      for: 10m
+      threshold: 0.02
