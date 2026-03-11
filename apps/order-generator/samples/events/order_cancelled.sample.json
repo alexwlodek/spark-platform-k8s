@@ -1,0 +1,24 @@
+{
+  "customer_id": "cust-00204",
+  "environment": "dev",
+  "event_id": "evt-732ca2dc-e4d5-5197-9407-6cf6460b6f18",
+  "event_time": "2026-03-11T00:09:03.316760Z",
+  "event_type": "order_cancelled",
+  "event_version": 1,
+  "idempotency_key": "ord-000022:order_cancelled:1",
+  "order_id": "ord-000022",
+  "partition_key": "ord-000022",
+  "payload": {
+    "cancellation_reason_code": "inventory_shortage",
+    "cancellation_source": "system",
+    "cancelled_stage": "inventory",
+    "customer_notified": true,
+    "reason_detail": "oversell_protection"
+  },
+  "payment_id": "pay-000022",
+  "producer": "order-generator",
+  "run_id": "run-20260311-000902-seed42",
+  "schema_ref": "schemas/business/order_cancelled.v1.json",
+  "session_id": "ses-3c2913f7-1814-53ce-b852-aa492dce74a6",
+  "trace_id": "trc-36cf4f13-6d21-593a-b36a-2559a4ed2a47"
+}

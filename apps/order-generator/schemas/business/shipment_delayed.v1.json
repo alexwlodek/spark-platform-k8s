@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/shipment_delayed.v1.json",
+  "title": "shipment_delayed v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payment_id",
+    "shipment_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "shipment_delayed" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/shipment_delayed.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "carrier",
+        "service_level",
+        "delay_reason_code",
+        "delayed_minutes",
+        "promised_delivery_at",
+        "updated_estimated_delivery_at",
+        "region"
+      ],
+      "properties": {
+        "carrier": { "type": "string" },
+        "service_level": { "type": "string" },
+        "delay_reason_code": { "type": "string" },
+        "delayed_minutes": { "type": "integer", "minimum": 1 },
+        "promised_delivery_at": { "type": "string", "format": "date-time" },
+        "updated_estimated_delivery_at": { "type": "string", "format": "date-time" },
+        "region": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

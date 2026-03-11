@@ -41,6 +41,31 @@ PAYMENT_FAILURES_TOTAL = Counter(
     "Payment failures grouped by failure reason",
     ["reason_group"],
 )
+INVENTORY_SHORTAGES_TOTAL = Counter(
+    "order_generator_inventory_shortages_total",
+    "Inventory shortages grouped by region",
+    ["region"],
+)
+SHIPMENTS_DELAYED_TOTAL = Counter(
+    "order_generator_shipments_delayed_total",
+    "Shipment delays grouped by carrier and region",
+    ["carrier", "region"],
+)
+REFUNDS_COMPLETED_TOTAL = Counter(
+    "order_generator_refunds_completed_total",
+    "Completed refunds grouped by reason code",
+    ["reason_code"],
+)
+SUSPICIOUS_ORDERS_TOTAL = Counter(
+    "order_generator_suspicious_orders_total",
+    "Suspicious orders grouped by action",
+    ["action"],
+)
+ORDERS_CANCELLED_TOTAL = Counter(
+    "order_generator_orders_cancelled_total",
+    "Cancelled orders grouped by lifecycle stage",
+    ["stage"],
+)
 SCHEMA_VALIDATION_FAILURES_TOTAL = Counter(
     "order_generator_schema_validation_failures_total",
     "Schema validation failures by event type",
@@ -129,6 +154,21 @@ class Metrics:
 
     def record_payment_failure(self, reason_group: str) -> None:
         PAYMENT_FAILURES_TOTAL.labels(reason_group=reason_group).inc()
+
+    def record_inventory_shortage(self, region: str) -> None:
+        INVENTORY_SHORTAGES_TOTAL.labels(region=region or "unknown").inc()
+
+    def record_shipment_delay(self, carrier: str, region: str) -> None:
+        SHIPMENTS_DELAYED_TOTAL.labels(carrier=carrier or "unknown", region=region or "unknown").inc()
+
+    def record_refund_completed(self, reason_code: str) -> None:
+        REFUNDS_COMPLETED_TOTAL.labels(reason_code=reason_code or "unknown").inc()
+
+    def record_suspicious_order(self, action: str) -> None:
+        SUSPICIOUS_ORDERS_TOTAL.labels(action=action or "unknown").inc()
+
+    def record_order_cancelled(self, stage: str) -> None:
+        ORDERS_CANCELLED_TOTAL.labels(stage=stage or "unknown").inc()
 
     def record_schema_failure(self, event_type: str) -> None:
         SCHEMA_VALIDATION_FAILURES_TOTAL.labels(event_type=event_type).inc()

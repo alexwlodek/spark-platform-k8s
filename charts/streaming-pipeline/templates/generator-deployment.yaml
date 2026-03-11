@@ -54,6 +54,14 @@ spec:
               value: {{ .Values.generator.kafka.orderLifecycleTopic | quote }}
             - name: TOPIC_PAYMENT_EVENTS
               value: {{ .Values.generator.kafka.paymentEventsTopic | quote }}
+            - name: TOPIC_INVENTORY_EVENTS
+              value: {{ .Values.generator.kafka.inventoryEventsTopic | quote }}
+            - name: TOPIC_SHIPMENT_EVENTS
+              value: {{ .Values.generator.kafka.shipmentEventsTopic | quote }}
+            - name: TOPIC_REFUND_EVENTS
+              value: {{ .Values.generator.kafka.refundEventsTopic | quote }}
+            - name: TOPIC_RISK_EVENTS
+              value: {{ .Values.generator.kafka.riskEventsTopic | quote }}
             - name: TOPIC_TECHNICAL_EVENTS
               value: {{ .Values.generator.kafka.technicalEventsTopic | quote }}
             - name: KAFKA_ACKS
@@ -78,6 +86,14 @@ spec:
               value: {{ .Values.generator.maxItems | quote }}
             - name: PAYMENT_FAILURE_RATE
               value: {{ .Values.generator.paymentFailureRate | quote }}
+            - name: INVENTORY_SHORTAGE_RATE
+              value: {{ .Values.generator.inventoryShortageRate | quote }}
+            - name: SHIPMENT_DELAY_RATE
+              value: {{ .Values.generator.shipmentDelayRate | quote }}
+            - name: REFUND_RATE
+              value: {{ .Values.generator.refundRate | quote }}
+            - name: SUSPICIOUS_ORDER_RATE
+              value: {{ .Values.generator.suspiciousOrderRate | quote }}
             - name: PYTHONUNBUFFERED
               value: "1"
 {{- with .Values.generator.resources }}

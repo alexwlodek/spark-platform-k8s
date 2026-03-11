@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/suspicious_order_flagged.v1.json",
+  "title": "suspicious_order_flagged v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "signal_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "suspicious_order_flagged" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/suspicious_order_flagged.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "risk_score",
+        "rules_triggered",
+        "action",
+        "review_status",
+        "channel",
+        "region",
+        "customer_segment"
+      ],
+      "properties": {
+        "risk_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rules_triggered": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "action": { "type": "string" },
+        "review_status": { "type": "string" },
+        "channel": { "type": "string" },
+        "region": { "type": "string" },
+        "customer_segment": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

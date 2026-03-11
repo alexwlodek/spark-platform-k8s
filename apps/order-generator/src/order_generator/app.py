@@ -9,7 +9,7 @@ from .envelope import build_event
 from .observability import HealthState, JsonLogger, Metrics, start_health_server
 from .publisher import KafkaPublisher, PublishError
 from .state_machine import LifecycleBatch, PlannedEvent, OrderLifecycleSimulator
-from .validation import SchemaValidationError, SchemaValidator
+from .validation import DomainValidationError, SchemaValidationError, SchemaValidator
 
 
 RUNNING = True
@@ -34,6 +34,10 @@ def emit_technical_event(
     order_id: str | None = None,
     customer_id: str | None = None,
     payment_id: str | None = None,
+    reservation_id: str | None = None,
+    shipment_id: str | None = None,
+    refund_id: str | None = None,
+    signal_id: str | None = None,
 ) -> None:
     schema_ref = f"schemas/technical/{event_type}.v1.json"
     technical_event = build_event(
@@ -49,6 +53,10 @@ def emit_technical_event(
         order_id=order_id,
         customer_id=customer_id,
         payment_id=payment_id,
+        reservation_id=reservation_id,
+        shipment_id=shipment_id,
+        refund_id=refund_id,
+        signal_id=signal_id,
         payload=payload,
     )
     try:
@@ -73,6 +81,10 @@ def emit_technical_event(
             order_id=order_id,
             customer_id=customer_id,
             payment_id=payment_id,
+            reservation_id=reservation_id,
+            shipment_id=shipment_id,
+            refund_id=refund_id,
+            signal_id=signal_id,
             latency_ms=round(latency * 1000, 2),
             run_id=config.run_id,
             status="published",
@@ -87,6 +99,10 @@ def emit_technical_event(
             order_id=order_id,
             customer_id=customer_id,
             payment_id=payment_id,
+            reservation_id=reservation_id,
+            shipment_id=shipment_id,
+            refund_id=refund_id,
+            signal_id=signal_id,
             run_id=config.run_id,
             error_class=exc.__class__.__name__,
             detail=str(exc),
@@ -109,6 +125,10 @@ def process_planned_event(
     order_id = event.get("order_id")
     customer_id = event.get("customer_id")
     payment_id = event.get("payment_id")
+    reservation_id = event.get("reservation_id")
+    shipment_id = event.get("shipment_id")
+    refund_id = event.get("refund_id")
+    signal_id = event.get("signal_id")
 
     generation_started = time.monotonic()
     try:
@@ -126,6 +146,10 @@ def process_planned_event(
             order_id=order_id,
             customer_id=customer_id,
             payment_id=payment_id,
+            reservation_id=reservation_id,
+            shipment_id=shipment_id,
+            refund_id=refund_id,
+            signal_id=signal_id,
             run_id=config.run_id,
         )
         emit_technical_event(
@@ -140,9 +164,53 @@ def process_planned_event(
             order_id=str(order_id) if order_id else None,
             customer_id=str(customer_id) if customer_id else None,
             payment_id=str(payment_id) if payment_id else None,
+            reservation_id=str(reservation_id) if reservation_id else None,
+            shipment_id=str(shipment_id) if shipment_id else None,
+            refund_id=str(refund_id) if refund_id else None,
+            signal_id=str(signal_id) if signal_id else None,
             payload={
                 "failed_event_type": event_type,
                 "schema_ref": exc.schema_ref,
+                "validation_errors": exc.errors,
+            },
+        )
+        return False
+    except DomainValidationError as exc:
+        metrics.record_malformed_event(event_type)
+        logger.log(
+            "ERROR",
+            "Domain validation failed",
+            component="validation",
+            event_type=event_type,
+            trace_id=trace_id,
+            order_id=order_id,
+            customer_id=customer_id,
+            payment_id=payment_id,
+            reservation_id=reservation_id,
+            shipment_id=shipment_id,
+            refund_id=refund_id,
+            signal_id=signal_id,
+            validation_errors=exc.errors,
+            run_id=config.run_id,
+        )
+        emit_technical_event(
+            config=config,
+            validator=validator,
+            publisher=publisher,
+            logger=logger,
+            metrics=metrics,
+            event_type="malformed_event_generated",
+            sequence=sequence,
+            trace_id=trace_id,
+            order_id=str(order_id) if order_id else None,
+            customer_id=str(customer_id) if customer_id else None,
+            payment_id=str(payment_id) if payment_id else None,
+            reservation_id=str(reservation_id) if reservation_id else None,
+            shipment_id=str(shipment_id) if shipment_id else None,
+            refund_id=str(refund_id) if refund_id else None,
+            signal_id=str(signal_id) if signal_id else None,
+            payload={
+                "failed_event_type": event_type,
                 "validation_errors": exc.errors,
             },
         )
@@ -172,6 +240,10 @@ def process_planned_event(
             order_id=order_id,
             customer_id=customer_id,
             payment_id=payment_id,
+            reservation_id=reservation_id,
+            shipment_id=shipment_id,
+            refund_id=refund_id,
+            signal_id=signal_id,
             run_id=config.run_id,
             error_class=exc.error_class,
             detail=exc.detail,
@@ -189,6 +261,10 @@ def process_planned_event(
             order_id=str(order_id) if order_id else None,
             customer_id=str(customer_id) if customer_id else None,
             payment_id=str(payment_id) if payment_id else None,
+            reservation_id=str(reservation_id) if reservation_id else None,
+            shipment_id=str(shipment_id) if shipment_id else None,
+            refund_id=str(refund_id) if refund_id else None,
+            signal_id=str(signal_id) if signal_id else None,
             payload={
                 "failed_event_type": event_type,
                 "topic": exc.topic,
@@ -204,6 +280,29 @@ def process_planned_event(
     log_level = planned_event.log_level
     if event_type == "payment_failed":
         metrics.record_payment_failure(str(payload["failure_reason_group"]))
+    elif event_type == "inventory_shortage":
+        metrics.record_inventory_shortage(str(payload.get("region") or "unknown"))
+    elif event_type == "shipment_delayed":
+        metrics.record_shipment_delay(str(payload.get("carrier") or "unknown"), str(payload.get("region") or "unknown"))
+    elif event_type == "refund_completed":
+        metrics.record_refund_completed(str(payload.get("reason_code") or "unknown"))
+    elif event_type == "suspicious_order_flagged":
+        metrics.record_suspicious_order(str(payload.get("action") or "unknown"))
+    elif event_type == "order_cancelled":
+        metrics.record_order_cancelled(str(payload.get("cancelled_stage") or "unknown"))
+    reason_code = (
+        payload.get("failure_reason_code")
+        or payload.get("reason_code")
+        or payload.get("cancellation_reason_code")
+        or payload.get("delay_reason_code")
+        or payload.get("shortage_reason_code")
+    )
+    amount = (
+        payload.get("grand_total")
+        or payload.get("amount")
+        or payload.get("requested_amount")
+        or payload.get("approved_amount")
+    )
     logger.log(
         log_level,
         "Business event emitted",
@@ -216,14 +315,21 @@ def process_planned_event(
         customer_id=customer_id,
         session_id=event.get("session_id"),
         payment_id=payment_id,
+        reservation_id=reservation_id,
+        shipment_id=shipment_id,
+        refund_id=refund_id,
+        signal_id=signal_id,
         run_id=config.run_id,
         status="published",
         latency_ms=round(latency * 1000, 2),
-        reason_code=payload.get("failure_reason_code"),
+        reason_code=reason_code,
+        reason_group=payload.get("failure_reason_group"),
         region=payload.get("region"),
         channel=payload.get("channel"),
         customer_segment=payload.get("customer_segment"),
-        amount=payload.get("grand_total", payload.get("amount")),
+        amount=amount,
+        carrier=payload.get("carrier"),
+        stage=payload.get("cancelled_stage"),
     )
     return True
 
@@ -270,7 +376,15 @@ def main() -> None:
         order_rate_per_second=config.order_rate_per_second,
         order_lifecycle_topic=config.topics.order_lifecycle,
         payment_events_topic=config.topics.payment_events,
+        inventory_events_topic=config.topics.inventory_events,
+        shipment_events_topic=config.topics.shipment_events,
+        refund_events_topic=config.topics.refund_events,
+        risk_events_topic=config.topics.risk_events,
         technical_events_topic=config.topics.technical_events,
+        inventory_shortage_rate=config.inventory_shortage_rate,
+        shipment_delay_rate=config.shipment_delay_rate,
+        refund_rate=config.refund_rate,
+        suspicious_order_rate=config.suspicious_order_rate,
         metrics_port=config.metrics_port,
         health_port=config.health_port,
     )

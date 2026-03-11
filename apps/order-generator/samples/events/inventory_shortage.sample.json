@@ -1,0 +1,33 @@
+{
+  "customer_id": "cust-00204",
+  "environment": "dev",
+  "event_id": "evt-510d03e5-5e3a-5ef7-81b6-54aa6ce3a2c0",
+  "event_time": "2026-03-11T00:09:03.291760Z",
+  "event_type": "inventory_shortage",
+  "event_version": 1,
+  "idempotency_key": "ord-000022:inventory_shortage:1",
+  "order_id": "ord-000022",
+  "partition_key": "ord-000022",
+  "payload": {
+    "missing_items": [
+      {
+        "missing_qty": 1,
+        "requested_qty": 1,
+        "sku": "sku-dock-11"
+      }
+    ],
+    "region": "eu-central-1",
+    "requested_qty": 2,
+    "reserved_qty": 1,
+    "shortage_reason_code": "oversell_protection",
+    "stock_after": 3,
+    "warehouse_id": "fra-1"
+  },
+  "payment_id": "pay-000022",
+  "producer": "order-generator",
+  "reservation_id": "res-000022",
+  "run_id": "run-20260311-000902-seed42",
+  "schema_ref": "schemas/business/inventory_shortage.v1.json",
+  "session_id": "ses-3c2913f7-1814-53ce-b852-aa492dce74a6",
+  "trace_id": "trc-36cf4f13-6d21-593a-b36a-2559a4ed2a47"
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/inventory_reserved.v1.json",
+  "title": "inventory_reserved v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payment_id",
+    "reservation_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "inventory_reserved" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/inventory_reserved.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "warehouse_id",
+        "requested_qty",
+        "reserved_qty",
+        "stock_after",
+        "reservation_status",
+        "sku_count",
+        "region"
+      ],
+      "properties": {
+        "warehouse_id": { "type": "string" },
+        "requested_qty": { "type": "integer", "minimum": 1 },
+        "reserved_qty": { "type": "integer", "minimum": 1 },
+        "stock_after": { "type": "integer", "minimum": 0 },
+        "reservation_status": { "const": "reserved" },
+        "sku_count": { "type": "integer", "minimum": 1 },
+        "region": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

@@ -31,6 +31,10 @@ def env_float(name: str, default: float) -> float:
 class TopicsConfig:
     order_lifecycle: str
     payment_events: str
+    inventory_events: str
+    shipment_events: str
+    refund_events: str
+    risk_events: str
     technical_events: str
 
 
@@ -61,6 +65,10 @@ class AppConfig:
     min_items: int
     max_items: int
     payment_failure_rate: float
+    inventory_shortage_rate: float
+    shipment_delay_rate: float
+    refund_rate: float
+    suspicious_order_rate: float
     failure_profile: str
     kafka: KafkaConfig
     topics: TopicsConfig
@@ -71,6 +79,30 @@ DEFAULT_FAILURE_RATES = {
     "balanced": 0.12,
     "peak": 0.18,
     "unhappy": 0.24,
+}
+
+DEFAULT_INVENTORY_SHORTAGE_RATES = {
+    "balanced": 0.05,
+    "peak": 0.09,
+    "unhappy": 0.13,
+}
+
+DEFAULT_SHIPMENT_DELAY_RATES = {
+    "balanced": 0.08,
+    "peak": 0.12,
+    "unhappy": 0.18,
+}
+
+DEFAULT_REFUND_RATES = {
+    "balanced": 0.03,
+    "peak": 0.05,
+    "unhappy": 0.08,
+}
+
+DEFAULT_SUSPICIOUS_ORDER_RATES = {
+    "balanced": 0.02,
+    "peak": 0.03,
+    "unhappy": 0.05,
 }
 
 
@@ -87,6 +119,19 @@ def load_config() -> AppConfig:
     scenario_profile = env_str("SCENARIO_PROFILE", "balanced")
     failure_profile = env_str("FAILURE_PROFILE", scenario_profile)
     default_failure_rate = DEFAULT_FAILURE_RATES.get(failure_profile, DEFAULT_FAILURE_RATES["balanced"])
+    default_inventory_shortage_rate = DEFAULT_INVENTORY_SHORTAGE_RATES.get(
+        failure_profile,
+        DEFAULT_INVENTORY_SHORTAGE_RATES["balanced"],
+    )
+    default_shipment_delay_rate = DEFAULT_SHIPMENT_DELAY_RATES.get(
+        failure_profile,
+        DEFAULT_SHIPMENT_DELAY_RATES["balanced"],
+    )
+    default_refund_rate = DEFAULT_REFUND_RATES.get(failure_profile, DEFAULT_REFUND_RATES["balanced"])
+    default_suspicious_order_rate = DEFAULT_SUSPICIOUS_ORDER_RATES.get(
+        failure_profile,
+        DEFAULT_SUSPICIOUS_ORDER_RATES["balanced"],
+    )
 
     return AppConfig(
         environment=env_str("ENVIRONMENT", "dev"),
@@ -104,6 +149,16 @@ def load_config() -> AppConfig:
         min_items=max(env_int("ORDER_MIN_ITEMS", 1), 1),
         max_items=max(env_int("ORDER_MAX_ITEMS", 4), 1),
         payment_failure_rate=min(max(env_float("PAYMENT_FAILURE_RATE", default_failure_rate), 0.0), 0.95),
+        inventory_shortage_rate=min(
+            max(env_float("INVENTORY_SHORTAGE_RATE", default_inventory_shortage_rate), 0.0),
+            0.95,
+        ),
+        shipment_delay_rate=min(max(env_float("SHIPMENT_DELAY_RATE", default_shipment_delay_rate), 0.0), 0.95),
+        refund_rate=min(max(env_float("REFUND_RATE", default_refund_rate), 0.0), 0.95),
+        suspicious_order_rate=min(
+            max(env_float("SUSPICIOUS_ORDER_RATE", default_suspicious_order_rate), 0.0),
+            0.95,
+        ),
         failure_profile=failure_profile,
         kafka=KafkaConfig(
             bootstrap_servers=env_str(
@@ -119,6 +174,10 @@ def load_config() -> AppConfig:
         topics=TopicsConfig(
             order_lifecycle=env_str("TOPIC_ORDER_LIFECYCLE", env_str("KAFKA_TOPIC", "commerce.order.lifecycle.v1")),
             payment_events=env_str("TOPIC_PAYMENT_EVENTS", "commerce.payment.events.v1"),
+            inventory_events=env_str("TOPIC_INVENTORY_EVENTS", "commerce.inventory.events.v1"),
+            shipment_events=env_str("TOPIC_SHIPMENT_EVENTS", "commerce.shipment.events.v1"),
+            refund_events=env_str("TOPIC_REFUND_EVENTS", "commerce.refund.events.v1"),
+            risk_events=env_str("TOPIC_RISK_EVENTS", "commerce.risk.events.v1"),
             technical_events=env_str("TOPIC_TECHNICAL_EVENTS", "commerce.generator.technical.v1"),
         ),
         schema_root=Path(env_str("SCHEMA_ROOT", str(default_schema_root()))),

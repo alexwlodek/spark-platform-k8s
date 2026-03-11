@@ -74,6 +74,18 @@
     "payment_id": {
       "type": "string"
     },
+    "reservation_id": {
+      "type": "string"
+    },
+    "shipment_id": {
+      "type": "string"
+    },
+    "refund_id": {
+      "type": "string"
+    },
+    "signal_id": {
+      "type": "string"
+    },
     "payload": {
       "type": "object"
     }

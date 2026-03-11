@@ -34,6 +34,10 @@ def build_event(
     customer_id: str | None = None,
     session_id: str | None = None,
     payment_id: str | None = None,
+    reservation_id: str | None = None,
+    shipment_id: str | None = None,
+    refund_id: str | None = None,
+    signal_id: str | None = None,
 ) -> dict[str, object]:
     timestamp = event_time or utc_now()
     event: dict[str, object] = {
@@ -58,4 +62,12 @@ def build_event(
         event["session_id"] = session_id
     if payment_id is not None:
         event["payment_id"] = payment_id
+    if reservation_id is not None:
+        event["reservation_id"] = reservation_id
+    if shipment_id is not None:
+        event["shipment_id"] = shipment_id
+    if refund_id is not None:
+        event["refund_id"] = refund_id
+    if signal_id is not None:
+        event["signal_id"] = signal_id
     return event

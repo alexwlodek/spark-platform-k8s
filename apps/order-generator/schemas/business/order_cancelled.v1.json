@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/order_cancelled.v1.json",
+  "title": "order_cancelled v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "order_cancelled" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/order_cancelled.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "cancellation_reason_code",
+        "cancelled_stage",
+        "reason_detail",
+        "cancellation_source",
+        "customer_notified"
+      ],
+      "properties": {
+        "cancellation_reason_code": { "type": "string" },
+        "cancelled_stage": { "type": "string" },
+        "reason_detail": { "type": "string" },
+        "cancellation_source": { "type": "string" },
+        "customer_notified": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

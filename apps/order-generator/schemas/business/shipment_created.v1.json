@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/shipment_created.v1.json",
+  "title": "shipment_created v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payment_id",
+    "shipment_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "shipment_created" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/shipment_created.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "carrier",
+        "service_level",
+        "shipment_status",
+        "promised_delivery_at",
+        "estimated_delivery_at",
+        "region"
+      ],
+      "properties": {
+        "carrier": { "type": "string" },
+        "service_level": { "type": "string" },
+        "shipment_status": { "const": "created" },
+        "promised_delivery_at": { "type": "string", "format": "date-time" },
+        "estimated_delivery_at": { "type": "string", "format": "date-time" },
+        "region": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

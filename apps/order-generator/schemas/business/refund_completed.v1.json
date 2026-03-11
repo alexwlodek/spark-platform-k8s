@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/business/refund_completed.v1.json",
+  "title": "refund_completed v1",
+  "type": "object",
+  "required": [
+    "event_type",
+    "event_version",
+    "schema_ref",
+    "order_id",
+    "customer_id",
+    "session_id",
+    "payment_id",
+    "refund_id",
+    "payload"
+  ],
+  "properties": {
+    "event_type": { "const": "refund_completed" },
+    "event_version": { "const": 1 },
+    "schema_ref": { "const": "schemas/business/refund_completed.v1.json" },
+    "payload": {
+      "type": "object",
+      "required": [
+        "reason_code",
+        "approved_amount",
+        "currency",
+        "refund_method",
+        "refund_type",
+        "completed_at",
+        "status"
+      ],
+      "properties": {
+        "reason_code": { "type": "string" },
+        "approved_amount": { "type": "number", "exclusiveMinimum": 0 },
+        "currency": { "type": "string" },
+        "refund_method": { "type": "string" },
+        "refund_type": { "type": "string" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "status": { "const": "completed" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

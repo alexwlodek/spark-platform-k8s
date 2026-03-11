@@ -1,0 +1,30 @@
+{
+  "customer_id": "cust-00379",
+  "environment": "dev",
+  "event_id": "evt-c07ed132-14ca-50b3-89ea-a834a59d6569",
+  "event_time": "2026-03-11T00:09:03.061333Z",
+  "event_type": "suspicious_order_flagged",
+  "event_version": 1,
+  "idempotency_key": "ord-000025:suspicious_order_flagged:1",
+  "order_id": "ord-000025",
+  "partition_key": "ord-000025",
+  "payload": {
+    "action": "allow_with_watch",
+    "channel": "mobile",
+    "customer_segment": "new",
+    "region": "us-west-2",
+    "review_status": "watchlist",
+    "risk_score": 0.6961,
+    "rules_triggered": [
+      "device_reuse",
+      "high_risk_region",
+      "velocity_spike"
+    ]
+  },
+  "producer": "order-generator",
+  "run_id": "run-20260311-000902-seed42",
+  "schema_ref": "schemas/business/suspicious_order_flagged.v1.json",
+  "session_id": "ses-09b729f9-1f28-5eba-ac4b-150017d0d3a7",
+  "signal_id": "sig-000025",
+  "trace_id": "trc-0f31396f-6b49-5798-b7ee-75859de34a05"
+}

@@ -81,6 +81,49 @@ CAMPAIGNS_BY_CHANNEL = {
     "marketplace": ("marketplace_featured", "coupon", "sponsored"),
     "b2b": ("account_manager", "renewal", "upsell"),
 }
+WAREHOUSES_BY_REGION = {
+    "eu-central-1": ("waw-1", "fra-1"),
+    "eu-west-1": ("dub-1", "par-1"),
+    "us-west-2": ("pdx-1", "sea-1"),
+}
+CARRIERS_BY_REGION = {
+    "eu-central-1": (("dhl", 0.45), ("inpost", 0.35), ("dpd", 0.20)),
+    "eu-west-1": (("dhl", 0.35), ("chronopost", 0.25), ("ups", 0.40)),
+    "us-west-2": (("ups", 0.42), ("fedex", 0.38), ("usps", 0.20)),
+}
+SERVICE_LEVELS_BY_CHANNEL = {
+    "web": (("standard", 0.70), ("express", 0.30)),
+    "mobile": (("standard", 0.62), ("express", 0.38)),
+    "marketplace": (("standard", 0.82), ("priority", 0.18)),
+    "b2b": (("scheduled", 0.55), ("express", 0.45)),
+}
+SHORTAGE_REASONS = (
+    ("stockout", 0.46),
+    ("warehouse_rebalance", 0.24),
+    ("oversell_protection", 0.18),
+    ("damaged_stock", 0.12),
+)
+SHIPMENT_DELAY_REASONS = (
+    ("weather", 0.18),
+    ("carrier_capacity", 0.31),
+    ("address_verification", 0.12),
+    ("linehaul_disruption", 0.23),
+    ("customs_review", 0.16),
+)
+REFUND_REASONS = (
+    ("inventory_shortage", 0.34),
+    ("shipment_delay_compensation", 0.24),
+    ("customer_return", 0.22),
+    ("carrier_damage", 0.12),
+    ("fraud_review_release", 0.08),
+)
+FRAUD_RULES = (
+    "velocity_spike",
+    "high_risk_region",
+    "avs_name_mismatch",
+    "device_reuse",
+    "amount_outlier",
+)
 
 T = TypeVar("T")
 

@@ -1,0 +1,27 @@
+{
+  "customer_id": "cust-00329",
+  "environment": "dev",
+  "event_id": "evt-09333832-f9e5-5ff6-8885-6e258d22d82f",
+  "event_time": "2026-03-11T00:14:03.708147Z",
+  "event_type": "shipment_delayed",
+  "event_version": 1,
+  "idempotency_key": "ord-000014:shipment_delayed:1",
+  "order_id": "ord-000014",
+  "partition_key": "ord-000014",
+  "payload": {
+    "carrier": "ups",
+    "delay_reason_code": "weather",
+    "delayed_minutes": 491,
+    "promised_delivery_at": "2026-03-14T00:09:03.708147Z",
+    "region": "eu-west-1",
+    "service_level": "standard",
+    "updated_estimated_delivery_at": "2026-03-14T08:20:03.708147Z"
+  },
+  "payment_id": "pay-000014",
+  "producer": "order-generator",
+  "run_id": "run-20260311-000902-seed42",
+  "schema_ref": "schemas/business/shipment_delayed.v1.json",
+  "session_id": "ses-1a94ec08-863e-5983-b9a4-da459010a72c",
+  "shipment_id": "shp-000014",
+  "trace_id": "trc-19a2c0e4-8276-5dbf-8688-ea8086bc2210"
+}

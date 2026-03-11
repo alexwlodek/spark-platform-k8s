@@ -1,0 +1,27 @@
+{
+  "customer_id": "cust-00069",
+  "environment": "dev",
+  "event_id": "evt-91ed5712-530d-5daa-922f-61b15b2af91d",
+  "event_time": "2026-03-14T00:54:03.603723Z",
+  "event_type": "refund_completed",
+  "event_version": 1,
+  "idempotency_key": "ord-000011:refund_completed:1",
+  "order_id": "ord-000011",
+  "partition_key": "ord-000011",
+  "payload": {
+    "approved_amount": 144.06,
+    "completed_at": "2026-03-14T00:54:03.603723Z",
+    "currency": "USD",
+    "reason_code": "inventory_shortage",
+    "refund_method": "card",
+    "refund_type": "full",
+    "status": "completed"
+  },
+  "payment_id": "pay-000011",
+  "producer": "order-generator",
+  "refund_id": "rfd-000011",
+  "run_id": "run-20260311-000902-seed42",
+  "schema_ref": "schemas/business/refund_completed.v1.json",
+  "session_id": "ses-29ec25fd-69a4-5e36-b004-df914f8ecfa3",
+  "trace_id": "trc-9249423c-da25-5a2d-a81d-e15885a6c961"
+}

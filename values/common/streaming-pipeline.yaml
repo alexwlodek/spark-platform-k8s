@@ -14,6 +14,10 @@ generator:
   scenarioProfile: balanced
   failureProfile: balanced
   paymentFailureRate: 0.12
+  inventoryShortageRate: 0.05
+  shipmentDelayRate: 0.08
+  refundRate: 0.03
+  suspiciousOrderRate: 0.02
   logLevel: INFO
   environment: dev
   emitSummaryEveryN: 25
@@ -23,6 +27,10 @@ generator:
     bootstrapServers: streaming-kafka.apps.svc.cluster.local:9092
     orderLifecycleTopic: commerce.order.lifecycle.v1
     paymentEventsTopic: commerce.payment.events.v1
+    inventoryEventsTopic: commerce.inventory.events.v1
+    shipmentEventsTopic: commerce.shipment.events.v1
+    refundEventsTopic: commerce.refund.events.v1
+    riskEventsTopic: commerce.risk.events.v1
     technicalEventsTopic: commerce.generator.technical.v1
     acks: all
     compressionType: none
@@ -65,7 +73,7 @@ sparkApplication:
     - --kafka-bootstrap-servers
     - streaming-kafka.apps.svc.cluster.local:9092
     - --kafka-topic
-    - commerce.order.lifecycle.v1,commerce.payment.events.v1,commerce.generator.technical.v1
+    - commerce.order.lifecycle.v1,commerce.payment.events.v1,commerce.inventory.events.v1,commerce.shipment.events.v1,commerce.refund.events.v1,commerce.risk.events.v1,commerce.generator.technical.v1
     - --window-duration
     - 1 minute
     - --watermark-delay

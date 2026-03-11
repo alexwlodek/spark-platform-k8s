@@ -12,7 +12,7 @@ sparkApplication:
     - --kafka-bootstrap-servers
     - b-1.data-platform-prod.xxxxxx.c2.kafka.eu-central-1.amazonaws.com:9092,b-2.data-platform-prod.xxxxxx.c2.kafka.eu-central-1.amazonaws.com:9092
     - --kafka-topic
-    - commerce.order.lifecycle.v1,commerce.payment.events.v1,commerce.generator.technical.v1
+    - commerce.order.lifecycle.v1,commerce.payment.events.v1,commerce.inventory.events.v1,commerce.shipment.events.v1,commerce.refund.events.v1,commerce.risk.events.v1,commerce.generator.technical.v1
     - --window-duration
     - 1 minute
     - --watermark-delay
