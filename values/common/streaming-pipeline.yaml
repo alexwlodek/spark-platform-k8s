@@ -74,6 +74,8 @@ sparkApplication:
     - streaming-kafka.apps.svc.cluster.local:9092
     - --kafka-topic
     - commerce.order.lifecycle.v1,commerce.payment.events.v1,commerce.inventory.events.v1,commerce.shipment.events.v1,commerce.refund.events.v1,commerce.risk.events.v1,commerce.generator.technical.v1
+    - --starting-offsets
+    - latest
     - --window-duration
     - 1 minute
     - --watermark-delay
@@ -82,8 +84,26 @@ sparkApplication:
     - s3a://streaming-lake/checkpoints/commerce-events-v1
     - --bronze-table
     - iceberg_nessie.streaming.bronze_commerce_events
+    - --quarantine-table
+    - iceberg_nessie.streaming.quarantine_commerce_events
+    - --silver-events-table
+    - iceberg_nessie.streaming.silver_order_events
+    - --silver-order-state-table
+    - iceberg_nessie.streaming.silver_order_state
+    - --silver-payments-table
+    - iceberg_nessie.streaming.silver_payments
+    - --silver-shipments-table
+    - iceberg_nessie.streaming.silver_shipments
+    - --silver-refunds-table
+    - iceberg_nessie.streaming.silver_refunds
     - --gold-table
     - iceberg_nessie.streaming.gold_order_metrics_minute
+    - --gold-funnel-table
+    - iceberg_nessie.streaming.gold_order_funnel_daily
+    - --gold-payment-failure-table
+    - iceberg_nessie.streaming.gold_payment_failure_rate_hourly
+    - --gold-revenue-refund-table
+    - iceberg_nessie.streaming.gold_revenue_refund_daily
     - --query-name
     - commerce_events_streaming
     - --trigger-processing-time
