@@ -1,11 +1,11 @@
-# EKS/PROD overrides
+# PROD overrides
 global:
   domain: argocd.prod.example.com
 
 configs:
   secret:
-    # Phase 1 uses chart-managed secret; in phase 2 switch to ExternalSecret.
-    createSecret: true
+    # bootstrap-argocd.sh seeds server.secretkey until the GCP ExternalSecret reconciles.
+    createSecret: false
   cm:
     url: https://argocd.prod.example.com
   params:

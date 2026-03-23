@@ -4,6 +4,11 @@ This folder contains non-GitOps test/drill assets for DEV practice.
 
 ## Available drills
 
+- `streaming/replay-idempotency`:
+  - Freezes the `order-generator` safely under Argo CD
+  - Runs two Kafka replay passes from `earliest` into dedicated `_replay` Iceberg tables
+  - Verifies pass1 vs pass2 snapshot equality and checks for duplicate `event_id`
+  - Restores the generator and leaves CSV artifacts in `/tmp`
 - `observability/bad-image-drill`:
   - Deploys SparkApplication with invalid image tag
   - Adds a dedicated PrometheusRule

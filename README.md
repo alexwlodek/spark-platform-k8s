@@ -5,8 +5,10 @@
 Current setup:
 
 - `dev` cluster on kind (`data-platform-dev`): `clusters/dev` + `values/dev`
-- `prod` cluster on EKS (`data-platform-prod`): `clusters/prod` + `values/prod`
+- `prod` target environment (`data-platform-prod`): `clusters/prod` + `values/prod`
 - shared values: `values/common`
+
+`infra/envs/prod` is still a legacy AWS/EKS template set and is not the forward target. Production secrets have already been moved to the GCP Secret Manager flow described below.
 
 GitOps uses app-of-apps (`root.yaml`) and in-cluster destination (`https://kubernetes.default.svc`).
 
@@ -16,9 +18,8 @@ GitOps uses app-of-apps (`root.yaml`) and in-cluster destination (`https://kuber
 scripts/dev-up.sh
 ```
 
-This creates a kind cluster, installs ingress-nginx and bootstraps Argo CD with app-of-apps.
-Before Argo CD bootstrap, `scripts/dev-up.sh` verifies `external-secrets/awssm-credentials`.
-If the secret is missing but `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are exported, it will run `scripts/dev-aws-sm-auth.sh` automatically; otherwise it stops with instructions.
+This creates a kind cluster, installs ingress-nginx, applies local DEV Kubernetes Secrets, and bootstraps Argo CD with app-of-apps.
+`scripts/dev-up.sh` now runs `scripts/dev-secrets-apply.sh` before Argo CD bootstrap so `dev` stays fully local and does not depend on any cloud secret backend.
 
 Default kind Kubernetes image is `kindest/node:v1.34.2` (override via `KIND_IMAGE=...`).
 If you already have an older cluster, recreate it with `KIND_DELETE_EXISTING=1 scripts/dev-up.sh`.
@@ -56,13 +57,13 @@ By default bootstrap installs Argo CD via pinned Helm chart version (`7.7.0`) an
 - `clusters/<env>/projects/platform.yaml`
 - `clusters/<env>/root.yaml`
 
-## PROD infrastructure bootstrap (AWS/EKS)
+## PROD infrastructure templates (legacy AWS/EKS)
 
 Terraform for production infrastructure lives in:
 
 - `infra/envs/prod`
 
-This stack creates:
+This stack is still AWS-specific legacy scaffolding and will be replaced in later phases of the GCP migration. Today it creates:
 
 - VPC (3 AZ)
 - EKS cluster `data-platform-prod`
@@ -86,7 +87,7 @@ scripts/prod-bootstrap-argocd.sh
 ```
 
 Phase-1 production root app ships with `spark-operator` on automated sync.
-Security apps (`security-external-secrets`, `security-aws-secretsmanager`) are present but intentionally manual-sync for phase 2.
+Security apps (`security-external-secrets`, `security-gcp-secretmanager`) are present only in `prod` and remain manual-sync while production bootstrap stays staged.
 
 ## Kind image cache (GHCR)
 
@@ -186,15 +187,12 @@ Spark job performs:
 - checkpointing and Parquet sink to MinIO (`s3a://streaming-lake/...`)
 - Prometheus metrics export (`inputRowsPerSecond`, `processedRowsPerSecond`, batch duration, lag, failures)
 
-## Security hardening (phase 1)
+## Secret flow
 
-Baseline for secret management in DEV:
+DEV uses local Kubernetes Secrets created by `scripts/dev-secrets-apply.sh`.
+PROD is prepared for `External Secrets Operator + GCP Secret Manager`.
 
-- Argo app: `clusters/dev/apps/security-external-secrets.yaml`
-- values: `values/common/external-secrets.yaml`, `values/dev/external-secrets.yaml`
-- Helm source: `https://charts.external-secrets.io` (chart `external-secrets`, `targetRevision: 1.3.2`)
-
-Charts prepared for external secret injection (`existingSecret` support):
+Charts prepared for injected secrets (`existingSecret` support):
 
 - `charts/storage-minio` -> `auth.existingSecret` (`root-user`, `root-password`)
 - `charts/storage-nessie` -> `database.existingSecret` (`db-username`, `db-password`)
@@ -206,55 +204,53 @@ Recommended next step before SSO:
 2. Bind Spark/Trino runtime config to those Secrets (no plaintext access keys in Git).
 3. After secret flow is stable, enable OIDC SSO for Argo CD and UI tools.
 
-## AWS Secrets Manager on DEV (kind)
+## Local secrets on DEV (kind)
 
-Argo apps and manifests:
-
-- `clusters/dev/apps/security-external-secrets.yaml`
-- `clusters/dev/apps/security-aws-secretsmanager.yaml`
-- `clusters/dev/security/aws-secretsmanager/*`
-
-DEV storage apps use externalized credentials via:
+DEV apps consume Kubernetes Secrets via:
 
 - `values/dev/storage-minio.yaml` -> `auth.existingSecret: platform-minio-creds`
 - `values/dev/storage-nessie.yaml` -> `database.existingSecret: platform-nessie-creds`
 - `values/dev/storage-nessie-db.yaml` -> `auth.existingSecret: platform-nessie-db-creds`
+- `values/dev/monitoring.yaml` -> `grafana.admin.existingSecret: platform-grafana-admin`
 
-Local bootstrap for kind:
+Local bootstrap:
 
 ```bash
-# 1) Seed example secrets in AWS Secrets Manager
-scripts/dev-aws-sm-seed.sh
-
-# 2) Provide AWS credentials to ESO in-cluster
-export AWS_ACCESS_KEY_ID=...
-export AWS_SECRET_ACCESS_KEY=...
-# optional for temporary STS credentials
-export AWS_SESSION_TOKEN=...
-scripts/dev-aws-sm-auth.sh
+scripts/dev-secrets-apply.sh
 ```
 
-Defaults used by `ExternalSecret` manifests:
+Environment overrides accepted by the script:
 
-- `/spark-platform/dev/storage-minio`
-- `/spark-platform/dev/storage-nessie`
-- `/spark-platform/dev/storage-nessie-db`
+- `MINIO_ROOT_USER`
+- `MINIO_ROOT_PASSWORD`
+- `NESSIE_DB_NAME`
+- `NESSIE_DB_USER`
+- `NESSIE_DB_PASSWORD`
+- `NESSIE_DB_POSTGRES_PASSWORD`
+- `GRAFANA_ADMIN_USER`
+- `GRAFANA_ADMIN_PASSWORD`
 
-## AWS Secrets Manager on PROD (EKS)
+## GCP Secret Manager on PROD (GKE target)
 
 Production manifests live in:
 
 - `clusters/prod/apps/security-external-secrets.yaml`
-- `clusters/prod/apps/security-aws-secretsmanager.yaml`
-- `clusters/prod/security/aws-secretsmanager/*`
+- `clusters/prod/apps/security-gcp-secretmanager.yaml`
+- `clusters/prod/security/gcp-secretmanager/*`
+- `values/prod/external-secrets.yaml`
+
+Production auth model:
+
+- External Secrets uses GKE Workload Identity via the `external-secrets` service account annotation in `values/prod/external-secrets.yaml`.
+- `values/prod/argocd.yaml` disables chart-managed secret creation; `scripts/bootstrap-argocd.sh` seeds `argocd-secret` with `server.secretkey` until the `ExternalSecret` reconciles.
 
 Defaults used by production `ExternalSecret` manifests:
 
-- `/spark-platform/prod/argocd`
-- `/spark-platform/prod/storage-minio`
-- `/spark-platform/prod/storage-nessie`
-- `/spark-platform/prod/storage-nessie-db`
-- `/spark-platform/prod/monitoring-grafana`
+- `spark-platform-prod-argocd`
+- `spark-platform-prod-monitoring-grafana`
+- `spark-platform-prod-storage-minio`
+- `spark-platform-prod-storage-nessie`
+- `spark-platform-prod-storage-nessie-db`
 
 ## CI/CD for Spark image
 

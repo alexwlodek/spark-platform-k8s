@@ -10,7 +10,6 @@ spec:
     - https://prometheus-community.github.io/helm-charts
     - https://kubeflow.github.io/spark-operator
     - https://argoproj.github.io/argo-helm
-    - https://charts.external-secrets.io
     - https://charts.bitnami.com/bitnami
     - https://fluent.github.io/helm-charts
   destinations:
@@ -25,8 +24,6 @@ spec:
     - namespace: logging
       server: https://kubernetes.default.svc
     - namespace: kube-system
-      server: https://kubernetes.default.svc
-    - namespace: external-secrets
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ""
@@ -47,8 +44,6 @@ spec:
       kind: PriorityClass
     - group: storage.k8s.io
       kind: StorageClass
-    - group: external-secrets.io
-      kind: ClusterSecretStore
   namespaceResourceWhitelist:
     - group: "*"
       kind: "*"
