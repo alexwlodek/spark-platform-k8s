@@ -1,0 +1,66 @@
+{{- range .Values.services }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: public-{{ .name }}-redirect
+  namespace: {{ .namespace }}
+spec:
+  hostnames:
+    - {{ .host | quote }}
+  parentRefs:
+    - name: {{ $.Values.gateway.name }}
+      namespace: {{ $.Values.gateway.namespace }}
+      sectionName: http
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: public-{{ .name }}
+  namespace: {{ .namespace }}
+spec:
+  hostnames:
+    - {{ .host | quote }}
+  parentRefs:
+    - name: {{ $.Values.gateway.name }}
+      namespace: {{ $.Values.gateway.namespace }}
+      sectionName: https
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ .serviceName }}
+          port: {{ .servicePort }}
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: public-{{ .name }}
+  namespace: {{ .namespace }}
+spec:
+  default:
+    checkIntervalSec: 15
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+    logConfig:
+      enabled: false
+    config:
+      type: HTTP
+      httpHealthCheck:
+        portSpecification: USE_FIXED_PORT
+        port: {{ .healthCheckPort }}
+        requestPath: {{ .healthCheckPath | quote }}
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ .serviceName }}
+{{- end }}

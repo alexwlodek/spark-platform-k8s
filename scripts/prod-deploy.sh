@@ -3,7 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-TERRAFORM_GCP_DIR="${TERRAFORM_GCP_DIR:-${REPO_ROOT}/infra/envs/gcp}"
+TERRAFORM_GCP_ROOT_DIR="${TERRAFORM_GCP_ROOT_DIR:-${REPO_ROOT}/infra/envs/gcp}"
+TERRAFORM_GCP_NETWORK_DIR="${TERRAFORM_GCP_NETWORK_DIR:-${TERRAFORM_GCP_ROOT_DIR}/network}"
+TERRAFORM_GCP_GKE_DIR="${TERRAFORM_GCP_GKE_DIR:-${TERRAFORM_GCP_ROOT_DIR}/gke}"
 
 MODE="all"
 AUTO_APPROVE="${AUTO_APPROVE:-0}"
@@ -11,10 +13,12 @@ AUTO_APPROVE="${AUTO_APPROVE:-0}"
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/prod-deploy.sh [--infra | --bootstrap | --all] [--auto-approve]
+  scripts/prod-deploy.sh [--network | --gke | --infra | --bootstrap | --all] [--auto-approve]
 
 Modes:
-  --infra        Run Terraform init + apply for GKE production infrastructure
+  --network      Run Terraform init + apply for shared production network resources
+  --gke          Run Terraform init + apply for the production GKE cluster
+  --infra        Run network first, then GKE
   --bootstrap    Configure kube context, seed Argo CD secret, bootstrap Argo CD
   --all          Run infra first, then bootstrap (default)
 
@@ -23,13 +27,16 @@ Options:
   -h, --help     Show this help
 
 Useful env overrides:
-  TERRAFORM_GCP_DIR
+  TERRAFORM_GCP_ROOT_DIR
+  TERRAFORM_GCP_NETWORK_DIR
+  TERRAFORM_GCP_GKE_DIR
   PROJECT_ID
   REGION
   CLUSTER_NAME
   AUTO_APPROVE=1
   ARGOCD_ADMIN_PASSWORD
   ARGOCD_ADMIN_BCRYPT_HASH
+  CLOUDFLARE_API_TOKEN
 EOF
 }
 
@@ -45,6 +52,12 @@ parse_args() {
     case "$1" in
       --infra)
         MODE="infra"
+        ;;
+      --network)
+        MODE="network"
+        ;;
+      --gke)
+        MODE="gke"
         ;;
       --bootstrap)
         MODE="bootstrap"
@@ -70,33 +83,55 @@ parse_args() {
   done
 }
 
-run_infra() {
+run_terraform_stack() {
+  local stack_name="$1"
+  local terraform_dir="$2"
+
   require terraform
 
-  if [[ ! -d "${TERRAFORM_GCP_DIR}" ]]; then
-    echo "Missing Terraform directory: ${TERRAFORM_GCP_DIR}" >&2
+  if [[ ! -d "${terraform_dir}" ]]; then
+    echo "Missing Terraform directory for ${stack_name}: ${terraform_dir}" >&2
     exit 1
   fi
 
-  echo "Running Terraform init for PROD GKE in ${TERRAFORM_GCP_DIR}..."
-  terraform -chdir="${TERRAFORM_GCP_DIR}" init
+  echo "Running Terraform init for ${stack_name} in ${terraform_dir}..."
+  terraform -chdir="${terraform_dir}" init
 
-  echo "Applying PROD GKE infrastructure..."
+  echo "Applying ${stack_name}..."
   if [[ "${AUTO_APPROVE}" == "1" ]]; then
-    terraform -chdir="${TERRAFORM_GCP_DIR}" apply -auto-approve
+    terraform -chdir="${terraform_dir}" apply -auto-approve
   else
-    terraform -chdir="${TERRAFORM_GCP_DIR}" apply
+    terraform -chdir="${terraform_dir}" apply
   fi
 }
 
+run_network() {
+  run_terraform_stack "PROD network stack" "${TERRAFORM_GCP_NETWORK_DIR}"
+}
+
+run_gke() {
+  run_terraform_stack "PROD GKE stack" "${TERRAFORM_GCP_GKE_DIR}"
+}
+
+run_infra() {
+  run_network
+  run_gke
+}
+
 run_bootstrap() {
-  echo "Bootstrapping Argo CD and phase-1 platform apps on GKE..."
+  echo "Bootstrapping Argo CD and production platform apps on GKE..."
   "${SCRIPT_DIR}/prod-up.sh"
 }
 
 parse_args "$@"
 
 case "${MODE}" in
+  network)
+    run_network
+    ;;
+  gke)
+    run_gke
+    ;;
   infra)
     run_infra
     ;;

@@ -15,12 +15,12 @@ output "cluster_region" {
 
 output "network_name" {
   description = "VPC used by the production GKE cluster."
-  value       = google_compute_network.main.name
+  value       = data.google_compute_network.main.name
 }
 
 output "subnetwork_name" {
   description = "Subnetwork used by the production GKE cluster."
-  value       = google_compute_subnetwork.gke.name
+  value       = data.google_compute_subnetwork.gke.name
 }
 
 output "node_service_account_email" {
@@ -31,21 +31,6 @@ output "node_service_account_email" {
 output "external_secrets_gsa_email" {
   description = "Service account mapped to the external-secrets Kubernetes service account."
   value       = google_service_account.external_secrets.email
-}
-
-output "argocd_static_ip_name" {
-  description = "Global static IP name referenced by the Argo CD ingress."
-  value       = google_compute_global_address.argocd.name
-}
-
-output "argocd_static_ip_address" {
-  description = "Global static IP address reserved for Argo CD."
-  value       = google_compute_global_address.argocd.address
-}
-
-output "argocd_hostname" {
-  description = "Expected public hostname for the Argo CD ingress."
-  value       = var.argocd_hostname
 }
 
 output "get_credentials_command" {

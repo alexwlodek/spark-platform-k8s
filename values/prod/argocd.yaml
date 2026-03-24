@@ -1,13 +1,13 @@
 # PROD overrides for GKE.
 global:
-  domain: argocd.prod.example.com
+  domain: argocd.prod.alexwlodek.com
 
 configs:
   secret:
     # bootstrap-argocd.sh seeds server.secretkey until the GCP ExternalSecret reconciles.
     createSecret: false
   cm:
-    url: https://argocd.prod.example.com
+    url: https://argocd.prod.alexwlodek.com
   params:
     # GKE Ingress terminates TLS at the load balancer in phase 1.
     server.insecure: true
@@ -17,13 +17,6 @@ redisSecretInit:
 
 server:
   service:
-    type: NodePort
+    type: ClusterIP
   ingress:
-    enabled: true
-    hostname: argocd.prod.example.com
-    annotations:
-      kubernetes.io/ingress.class: gce
-      kubernetes.io/ingress.allow-http: "true"
-      kubernetes.io/ingress.global-static-ip-name: argocd-prod-ip
-      networking.gke.io/managed-certificates: argocd-prod
-      networking.gke.io/v1beta1.FrontendConfig: argocd-frontend-config
+    enabled: false

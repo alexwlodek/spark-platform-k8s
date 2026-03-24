@@ -1,0 +1,27 @@
+certificate:
+  issuerEmail: platform@alexwlodek.com
+  dnsNames:
+    - "*.prod.alexwlodek.com"
+
+services:
+  - name: argocd
+    namespace: argocd
+    host: argocd.prod.alexwlodek.com
+    serviceName: argocd-server
+    servicePort: 80
+    healthCheckPath: /healthz
+    healthCheckPort: 80
+  - name: grafana
+    namespace: monitoring
+    host: grafana.prod.alexwlodek.com
+    serviceName: kube-prometheus-stack-grafana
+    servicePort: 80
+    healthCheckPath: /api/health
+    healthCheckPort: 80
+  - name: kibana
+    namespace: logging
+    host: kibana.prod.alexwlodek.com
+    serviceName: kibana
+    servicePort: 5601
+    healthCheckPath: /api/status
+    healthCheckPort: 5601

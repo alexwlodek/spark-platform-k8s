@@ -1,5 +1,7 @@
 # PROD GKE Phase 1
 
+This document describes the older phase-1-only bootstrap. The current production public access design lives in `docs/prod-gke-public-access.md`.
+
 ## Scope
 
 This phase migrates only:
@@ -23,7 +25,7 @@ This phase does not migrate Kafka, MinIO, Nessie, Trino, Metabase, monitoring, o
 ## Assumptions Called Out From The Repo
 
 - Existing PROD manifests now assume GCP project ID `data-platform-prod-491113`.
-- Existing PROD values already assume Argo CD hostname `argocd.prod.example.com`; replace it before public exposure.
+- Existing PROD values already assume Argo CD hostname `argocd.prod.alexwlodek.com`; replace it before public exposure.
 - Existing PROD External Secrets flow expects Secret Manager secret `spark-platform-prod-argocd`.
 - IDE tabs referenced `.secrets/data-platform-dev-secrets.json` and `scripts/dev-gcp-sm-seed.sh`, but neither exists in the current working tree.
 

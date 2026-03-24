@@ -8,7 +8,7 @@ Current setup:
 - `prod` target environment (`data-platform-prod`): `clusters/prod` + `values/prod`
 - shared values: `values/common`
 
-`infra/envs/prod` is still a legacy AWS/EKS template set and is not the forward target. Production secrets have already been moved to the GCP Secret Manager flow described below.
+`infra/envs/prod` is still a legacy AWS/EKS template set and is not the forward target. Production infrastructure now lives under `infra/envs/gcp/network` and `infra/envs/gcp/gke`.
 
 GitOps uses app-of-apps (`root.yaml`) and in-cluster destination (`https://kubernetes.default.svc`).
 
@@ -50,57 +50,79 @@ DEPLOY_ENV=prod KUBE_CONTEXT=gke_data-platform-prod-491113_europe-central2_data-
 Wrappers:
 
 - `scripts/dev-bootstrap-argocd.sh`
-- `scripts/prod-deploy.sh` (`--infra`, `--bootstrap`, `--all`)
+- `scripts/prod-deploy.sh` (`--network`, `--gke`, `--infra`, `--bootstrap`, `--all`)
 - `scripts/prod-bootstrap-argocd.sh`
-- `scripts/prod-up.sh` (GKE phase-1: get credentials + seed Argo CD secret in Secret Manager and Kubernetes + bootstrap Argo CD + wait for External Secrets readiness)
+- `scripts/prod-up.sh` (get credentials + seed Argo CD and Cloudflare bootstrap secrets + bootstrap Argo CD + wait for External Secrets readiness)
 
 By default bootstrap installs Argo CD via pinned Helm chart version (`7.7.0`) and then applies:
 
 - `clusters/<env>/projects/platform.yaml`
 - `clusters/<env>/root.yaml`
 
-## PROD infrastructure templates (legacy AWS/EKS)
+## PROD GCP infrastructure
 
-Terraform for production infrastructure lives in:
+Terraform for production infrastructure is split into:
 
-- `infra/envs/prod`
+- `infra/envs/gcp/network`
+- `infra/envs/gcp/gke`
 
-This stack is still AWS-specific legacy scaffolding and will be replaced in later phases of the GCP migration. Today it creates:
+Apply order:
 
-- VPC (3 AZ)
-- EKS cluster `data-platform-prod`
-- IRSA roles (`aws-load-balancer-controller`, `external-secrets`, `ebs-csi`)
-- EBS CSI addon
-- AWS Load Balancer Controller
+1. `network` for VPC, subnet, Cloud NAT, reserved public IP, and optional Cloudflare DNS records.
+2. `gke` for the production GKE cluster, node pools, Workload Identity, and service accounts.
 
 Suggested flow:
 
 ```bash
-cp infra/envs/prod/terraform.tfvars.example infra/envs/prod/terraform.tfvars
-terraform -chdir=infra/envs/prod init
-terraform -chdir=infra/envs/prod plan
-terraform -chdir=infra/envs/prod apply
+cp infra/envs/gcp/network/terraform.tfvars.example infra/envs/gcp/network/terraform.tfvars
+cp infra/envs/gcp/gke/terraform.tfvars.example infra/envs/gcp/gke/terraform.tfvars
+
+terraform -chdir=infra/envs/gcp/network init
+terraform -chdir=infra/envs/gcp/network plan
+terraform -chdir=infra/envs/gcp/network apply
+
+terraform -chdir=infra/envs/gcp/gke init
+terraform -chdir=infra/envs/gcp/gke plan
+terraform -chdir=infra/envs/gcp/gke apply
 
 # configure kubectl context (see terraform output too)
-aws eks update-kubeconfig --region eu-central-1 --name data-platform-prod --alias data-platform-prod
+gcloud container clusters get-credentials data-platform-prod --region europe-central2 --project data-platform-prod-491113
 
 # bootstrap Argo CD on prod cluster
 scripts/prod-bootstrap-argocd.sh
 ```
 
-Phase-1 production root app ships with `argocd`, `security-external-secrets`, `security-gcp-secretmanager`, and `spark-operator`.
-The phased GKE production entrypoint is:
+The production root app now ships the shared public access path:
+
+- `argocd`
+- `security-external-secrets`
+- `security-gcp-secretmanager`
+- `security-cert-manager`
+- `monitoring`
+- `logging-elasticsearch`
+- `logging-kibana`
+- `logging-fluent-bit`
+- `platform-public-gateway`
+- `spark-operator`
+
+One-command production entrypoint:
 
 ```bash
-ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' scripts/prod-deploy.sh --all
+ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' \
+CLOUDFLARE_API_TOKEN='replace-with-cloudflare-token' \
+scripts/prod-deploy.sh --all
 ```
 
 You can also split it explicitly:
 
 ```bash
 scripts/prod-deploy.sh --infra
-ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' scripts/prod-deploy.sh --bootstrap
+ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' \
+CLOUDFLARE_API_TOKEN='replace-with-cloudflare-token' \
+scripts/prod-deploy.sh --bootstrap
 ```
+
+Details are documented in `docs/prod-gke-public-access.md`.
 
 ## Kind image cache (GHCR)
 
@@ -249,6 +271,7 @@ Production manifests live in:
 
 - `clusters/prod/apps/security-external-secrets.yaml`
 - `clusters/prod/apps/security-gcp-secretmanager.yaml`
+- `clusters/prod/apps/security-cert-manager.yaml`
 - `clusters/prod/security/gcp-secretmanager/*`
 - `values/prod/external-secrets.yaml`
 
@@ -256,10 +279,12 @@ Production auth model:
 
 - External Secrets uses GKE Workload Identity via the `external-secrets` service account annotation in `values/prod/external-secrets.yaml`.
 - `values/prod/argocd.yaml` disables chart-managed secret creation; `scripts/bootstrap-argocd.sh` seeds `argocd-secret` with `server.secretkey` until the `ExternalSecret` reconciles.
+- `scripts/prod-cloudflare-secret-seed.sh` seeds the Cloudflare API token used by cert-manager DNS-01 and stores it in GCP Secret Manager for External Secrets to project into Kubernetes.
 
 Defaults used by production `ExternalSecret` manifests:
 
 - `spark-platform-prod-argocd`
+- `spark-platform-prod-cert-manager-cloudflare`
 - `spark-platform-prod-monitoring-grafana`
 - `spark-platform-prod-storage-minio`
 - `spark-platform-prod-storage-nessie`

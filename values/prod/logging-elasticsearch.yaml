@@ -1,0 +1,4 @@
+master:
+  persistence:
+    enabled: true
+    size: 20Gi

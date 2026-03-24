@@ -1,0 +1,23 @@
+grafana:
+  admin:
+    existingSecret: platform-grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  persistence:
+    enabled: true
+    size: 10Gi
+  grafana.ini:
+    server:
+      domain: grafana.prod.alexwlodek.com
+      root_url: https://grafana.prod.alexwlodek.com
+
+prometheus:
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 30Gi

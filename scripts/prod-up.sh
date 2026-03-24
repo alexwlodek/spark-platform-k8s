@@ -113,6 +113,8 @@ gcloud container clusters get-credentials "${CLUSTER_NAME}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" >/dev/null
 
+ALLOW_EMPTY_TOKEN=1 "${SCRIPT_DIR}/prod-cloudflare-secret-seed.sh"
+
 APPLY_K8S_SECRET=1 \
 ARGO_NAMESPACE="${ARGO_NAMESPACE:-argocd}" \
 "${SCRIPT_DIR}/prod-argocd-secret-seed.sh"
@@ -130,8 +132,10 @@ wait_for_secret_keys argocd argocd-secret
 kubectl -n argocd delete secret argocd-initial-admin-secret --ignore-not-found >/dev/null 2>&1 || true
 
 echo
-echo "✅ PROD phase-1 bootstrap ready."
+echo "✅ PROD bootstrap ready."
 echo "Check:"
 echo "  - kubectl -n argocd get applications"
-echo "  - kubectl -n argocd get ingress"
+echo "  - kubectl get gateway -A"
+echo "  - kubectl get httproute -A"
+echo "  - kubectl -n gateway-system get certificate"
 echo "  - kubectl -n spark-operator get pods"

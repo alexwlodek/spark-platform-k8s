@@ -1,0 +1,28 @@
+gateway:
+  namespace: gateway-system
+  name: prod-public-gateway
+  className: gke-l7-global-external-managed
+  staticIpName: data-platform-prod-public-gateway-ip
+
+certificate:
+  name: prod-wildcard
+  secretName: prod-wildcard-tls
+  issuerName: letsencrypt-cloudflare-prod
+  issuerPrivateKeySecretName: letsencrypt-cloudflare-prod-account-key
+  issuerEmail: platform@alexwlodek.com
+  acmeServer: https://acme-v02.api.letsencrypt.org/directory
+  dnsNames:
+    - "*.prod.alexwlodek.com"
+
+cloudflare:
+  apiTokenSecretName: cloudflare-api-token
+  apiTokenSecretKey: api-token
+
+services:
+  - name: argocd
+    namespace: argocd
+    host: argocd.prod.alexwlodek.com
+    serviceName: argocd-server
+    servicePort: 80
+    healthCheckPath: /healthz
+    healthCheckPort: 80

@@ -1,0 +1,12 @@
+project_id = "data-platform-prod-491113"
+region     = "europe-central2"
+
+base_domain           = "alexwlodek.com"
+environment_subdomain = "prod"
+cloudflare_zone_id    = "4763d7edae2a05efe04d186d07834ce5"
+
+public_hostnames = [
+  "argocd",
+  "grafana",
+  "kibana",
+]

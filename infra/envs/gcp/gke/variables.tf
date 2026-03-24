@@ -26,28 +26,16 @@ variable "cluster_name" {
   default     = "data-platform-prod"
 }
 
-variable "argocd_hostname" {
-  description = "Public DNS hostname used by the Argo CD ingress."
-  type        = string
-  default     = "argocd.prod.example.com"
-}
-
 variable "network_name" {
-  description = "VPC network name."
+  description = "Existing VPC network name created by the network stack."
   type        = string
   default     = "data-platform-prod-vpc"
 }
 
 variable "subnetwork_name" {
-  description = "Subnetwork name for the GKE cluster."
+  description = "Existing subnetwork name created by the network stack."
   type        = string
   default     = "data-platform-prod-gke"
-}
-
-variable "subnet_cidr" {
-  description = "Primary subnet CIDR for GKE nodes."
-  type        = string
-  default     = "10.70.0.0/20"
 }
 
 variable "pods_secondary_range_name" {
@@ -56,22 +44,10 @@ variable "pods_secondary_range_name" {
   default     = "gke-pods"
 }
 
-variable "pods_cidr" {
-  description = "Secondary CIDR used for GKE pods."
-  type        = string
-  default     = "10.80.0.0/14"
-}
-
 variable "services_secondary_range_name" {
   description = "Secondary range name used for GKE services."
   type        = string
   default     = "gke-services"
-}
-
-variable "services_cidr" {
-  description = "Secondary CIDR used for GKE services."
-  type        = string
-  default     = "10.84.0.0/20"
 }
 
 variable "master_ipv4_cidr_block" {

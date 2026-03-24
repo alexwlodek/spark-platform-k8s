@@ -5,51 +5,41 @@ locals {
       platform    = "data-platform"
       cluster     = var.cluster_name
       managed_by  = "terraform"
+      stack       = "gke"
     },
     var.labels
   )
 }
 
-resource "google_compute_network" "main" {
-  name                    = var.network_name
-  auto_create_subnetworks = false
+resource "google_project_service" "container" {
+  project            = var.project_id
+  service            = "container.googleapis.com"
+  disable_on_destroy = false
 }
 
-resource "google_compute_subnetwork" "gke" {
-  name                     = var.subnetwork_name
-  region                   = var.region
-  network                  = google_compute_network.main.id
-  ip_cidr_range            = var.subnet_cidr
-  private_ip_google_access = true
-
-  secondary_ip_range {
-    range_name    = var.pods_secondary_range_name
-    ip_cidr_range = var.pods_cidr
-  }
-
-  secondary_ip_range {
-    range_name    = var.services_secondary_range_name
-    ip_cidr_range = var.services_cidr
-  }
+resource "google_project_service" "iam" {
+  project            = var.project_id
+  service            = "iam.googleapis.com"
+  disable_on_destroy = false
 }
 
-resource "google_compute_router" "nat" {
-  name    = "${var.cluster_name}-nat-router"
-  region  = var.region
-  network = google_compute_network.main.name
+resource "google_project_service" "secretmanager" {
+  project            = var.project_id
+  service            = "secretmanager.googleapis.com"
+  disable_on_destroy = false
 }
 
-resource "google_compute_router_nat" "nat" {
-  name                               = "${var.cluster_name}-nat"
-  region                             = var.region
-  router                             = google_compute_router.nat.name
-  nat_ip_allocate_option             = "AUTO_ONLY"
-  source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS"
+data "google_compute_network" "main" {
+  name = var.network_name
 
-  subnetwork {
-    name                    = google_compute_subnetwork.gke.id
-    source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
-  }
+  depends_on = [google_project_service.container]
+}
+
+data "google_compute_subnetwork" "gke" {
+  name   = var.subnetwork_name
+  region = var.region
+
+  depends_on = [google_project_service.container]
 }
 
 resource "google_service_account" "nodes" {
@@ -74,19 +64,11 @@ resource "google_project_iam_member" "external_secrets_secret_accessor" {
   member  = "serviceAccount:${google_service_account.external_secrets.email}"
 }
 
-resource "google_service_account_iam_member" "external_secrets_workload_identity" {
-  service_account_id = google_service_account.external_secrets.name
-  role               = "roles/iam.workloadIdentityUser"
-  member             = "serviceAccount:${var.project_id}.svc.id.goog[external-secrets/external-secrets]"
-
-  depends_on = [google_container_cluster.prod]
-}
-
 resource "google_container_cluster" "prod" {
   name                = var.cluster_name
   location            = var.region
-  network             = google_compute_network.main.id
-  subnetwork          = google_compute_subnetwork.gke.name
+  network             = data.google_compute_network.main.id
+  subnetwork          = data.google_compute_subnetwork.gke.name
   node_locations      = var.zones
   deletion_protection = false
 
@@ -102,6 +84,16 @@ resource "google_container_cluster" "prod" {
     metadata = {
       disable-legacy-endpoints = "true"
     }
+  }
+
+  addons_config {
+    http_load_balancing {
+      disabled = false
+    }
+  }
+
+  gateway_api_config {
+    channel = "CHANNEL_STANDARD"
   }
 
   release_channel {
@@ -139,9 +131,19 @@ resource "google_container_cluster" "prod" {
   resource_labels = local.common_labels
 
   depends_on = [
-    google_compute_router_nat.nat,
+    google_project_service.container,
+    google_project_service.iam,
+    google_project_service.secretmanager,
     google_project_iam_member.nodes_default_role,
   ]
+}
+
+resource "google_service_account_iam_member" "external_secrets_workload_identity" {
+  service_account_id = google_service_account.external_secrets.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[external-secrets/external-secrets]"
+
+  depends_on = [google_container_cluster.prod]
 }
 
 resource "google_container_node_pool" "platform" {
@@ -185,11 +187,7 @@ resource "google_container_node_pool" "platform" {
   }
 
   depends_on = [
+    google_container_cluster.prod,
     google_project_iam_member.nodes_default_role,
-    google_compute_router_nat.nat,
   ]
-}
-
-resource "google_compute_global_address" "argocd" {
-  name = "argocd-prod-ip"
 }

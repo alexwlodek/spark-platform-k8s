@@ -6,8 +6,7 @@ zones = [
   "europe-central2-c",
 ]
 
-cluster_name    = "data-platform-prod"
-argocd_hostname = "argocd.prod.example.com"
+cluster_name = "data-platform-prod"
 
 master_authorized_networks = [
   {
