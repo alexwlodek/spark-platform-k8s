@@ -52,7 +52,7 @@ Wrappers:
 - `scripts/dev-bootstrap-argocd.sh`
 - `scripts/prod-deploy.sh` (`--infra`, `--bootstrap`, `--all`)
 - `scripts/prod-bootstrap-argocd.sh`
-- `scripts/prod-up.sh` (GKE phase-1: get credentials + seed Argo CD secret in Secret Manager + bootstrap Argo CD)
+- `scripts/prod-up.sh` (GKE phase-1: get credentials + seed Argo CD secret in Secret Manager and Kubernetes + bootstrap Argo CD + wait for External Secrets readiness)
 
 By default bootstrap installs Argo CD via pinned Helm chart version (`7.7.0`) and then applies:
 

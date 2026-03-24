@@ -10,6 +10,8 @@ ARGOCD_ADMIN_PASSWORD="${ARGOCD_ADMIN_PASSWORD:-}"
 ARGOCD_ADMIN_BCRYPT_HASH="${ARGOCD_ADMIN_BCRYPT_HASH:-}"
 ARGOCD_ADMIN_PASSWORD_MTIME="${ARGOCD_ADMIN_PASSWORD_MTIME:-}"
 ARGOCD_SERVER_SECRETKEY="${ARGOCD_SERVER_SECRETKEY:-}"
+APPLY_K8S_SECRET="${APPLY_K8S_SECRET:-0}"
+ARGO_NAMESPACE="${ARGO_NAMESPACE:-argocd}"
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
 require gcloud
@@ -29,12 +31,48 @@ generate_bcrypt_hash() {
     return 0
   fi
 
-  echo "Missing dependency: htpasswd (apache2-utils/httpd-tools) or set ARGOCD_ADMIN_BCRYPT_HASH" >&2
+  if command -v python3 >/dev/null 2>&1; then
+    hash="$(python3 - "${password}" <<'PY'
+import sys
+
+try:
+    import bcrypt
+except ImportError:
+    sys.exit(1)
+
+password = sys.argv[1].encode("utf-8")
+hashed = bcrypt.hashpw(password, bcrypt.gensalt(rounds=10, prefix=b"2a"))
+print(hashed.decode("utf-8"), end="")
+PY
+)" || true
+
+    if [[ -n "${hash}" ]]; then
+      printf '%s' "${hash}"
+      return 0
+    fi
+  fi
+
+  echo "Missing dependency: htpasswd (package: apache2-utils/httpd-tools) or python3 bcrypt module, or set ARGOCD_ADMIN_BCRYPT_HASH" >&2
   exit 1
 }
 
 secret_exists() {
   gcloud secrets describe "${ARGOCD_SECRET_NAME}" --project "${PROJECT_ID}" >/dev/null 2>&1
+}
+
+apply_bootstrap_k8s_secret() {
+  require kubectl
+
+  kubectl get ns "${ARGO_NAMESPACE}" >/dev/null 2>&1 || kubectl create ns "${ARGO_NAMESPACE}" >/dev/null
+
+  kubectl -n "${ARGO_NAMESPACE}" create secret generic argocd-secret \
+    --from-literal=admin.password="${admin_password_hash}" \
+    --from-literal=admin.passwordMtime="${admin_password_mtime}" \
+    --from-literal=server.secretkey="${server_secretkey}" \
+    --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
+  echo "Seeded bootstrap Kubernetes secret:"
+  echo "  - ${ARGO_NAMESPACE}/argocd-secret"
 }
 
 get_existing_secret_json() {
@@ -112,6 +150,10 @@ payload="$(jq -n \
 printf '%s\n' "${payload}" | gcloud secrets versions add "${ARGOCD_SECRET_NAME}" \
   --data-file=- \
   --project "${PROJECT_ID}" >/dev/null
+
+if [[ "${APPLY_K8S_SECRET}" == "1" ]]; then
+  apply_bootstrap_k8s_secret
+fi
 
 echo "Seeded Secret Manager secret:"
 echo "  - ${PROJECT_ID}/${ARGOCD_SECRET_NAME}"

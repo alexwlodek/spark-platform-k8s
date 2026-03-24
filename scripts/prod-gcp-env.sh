@@ -4,8 +4,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TERRAFORM_GCP_DIR="${TERRAFORM_GCP_DIR:-${REPO_ROOT}/infra/envs/gcp}"
 
+looks_like_tf_identifier() {
+  local value="$1"
+  [[ "${value}" =~ ^[a-z0-9][a-z0-9._-]*$ ]]
+}
+
 resolve_tf_output() {
   local output_name="$1"
+  local value
 
   if ! command -v terraform >/dev/null 2>&1; then
     return 0
@@ -15,7 +21,18 @@ resolve_tf_output() {
     return 0
   fi
 
-  terraform -chdir="${TERRAFORM_GCP_DIR}" output -raw "${output_name}" 2>/dev/null || true
+  value="$(terraform -chdir="${TERRAFORM_GCP_DIR}" output -raw "${output_name}" 2>/dev/null || true)"
+  value="${value//$'\r'/}"
+
+  if [[ -z "${value}" ]]; then
+    return 0
+  fi
+
+  if ! looks_like_tf_identifier "${value}"; then
+    return 0
+  fi
+
+  printf '%s' "${value}"
 }
 
 PROJECT_ID="${PROJECT_ID:-$(resolve_tf_output project_id)}"

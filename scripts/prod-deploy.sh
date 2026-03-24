@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=prod-gcp-env.sh
-source "${SCRIPT_DIR}/prod-gcp-env.sh"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+TERRAFORM_GCP_DIR="${TERRAFORM_GCP_DIR:-${REPO_ROOT}/infra/envs/gcp}"
 
 MODE="all"
 AUTO_APPROVE="${AUTO_APPROVE:-0}"

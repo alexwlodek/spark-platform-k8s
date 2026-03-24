@@ -76,9 +76,11 @@ Notes:
 4. The script:
    - runs `terraform init`
    - runs `terraform apply`
-   - configures `kubectl` against the new GKE cluster
+    - configures `kubectl` against the new GKE cluster
    - seeds Secret Manager secret `spark-platform-prod-argocd`
+   - pre-seeds bootstrap Kubernetes secret `argocd/argocd-secret`
    - bootstraps Argo CD and the prod root app
+   - waits for External Secrets and `argocd-admin-credentials` to become ready
 5. Argo CD reconciles:
    - `argocd`
    - `security-external-secrets`
