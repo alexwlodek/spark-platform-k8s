@@ -14,11 +14,8 @@ spec:
       helm:
         releaseName: platform-public-gateway
         valueFiles:
-          - $values/values/common/public-gateway.yaml
-          - $values/values/prod/public-gateway.yaml
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
-      targetRevision: main
-      ref: values
+          - ../../values/common/public-gateway.yaml
+          - ../../values/prod/public-gateway.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: gateway-system
