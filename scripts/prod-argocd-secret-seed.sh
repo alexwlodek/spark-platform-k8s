@@ -12,6 +12,7 @@ ARGOCD_ADMIN_PASSWORD_MTIME="${ARGOCD_ADMIN_PASSWORD_MTIME:-}"
 ARGOCD_SERVER_SECRETKEY="${ARGOCD_SERVER_SECRETKEY:-}"
 APPLY_K8S_SECRET="${APPLY_K8S_SECRET:-0}"
 ARGO_NAMESPACE="${ARGO_NAMESPACE:-argocd}"
+FORCE_RESEED="${FORCE_RESEED:-0}"
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
 require gcloud
@@ -85,11 +86,19 @@ get_existing_secret_json() {
     --project "${PROJECT_ID}" 2>/dev/null || true
 }
 
-existing_secret_json="$(get_existing_secret_json)"
+existing_secret_json=""
 
-if [[ -n "${existing_secret_json}" ]] && ! jq -e . >/dev/null 2>&1 <<<"${existing_secret_json}"; then
-  echo "Existing Secret Manager payload in ${PROJECT_ID}/${ARGOCD_SECRET_NAME} is not valid JSON." >&2
-  exit 1
+if [[ "${FORCE_RESEED}" == "1" ]]; then
+  echo "FORCE_RESEED=1 set; ignoring any existing payload in ${PROJECT_ID}/${ARGOCD_SECRET_NAME}."
+else
+  existing_secret_json="$(get_existing_secret_json)"
+
+  if [[ -n "${existing_secret_json}" ]] && ! jq -e . >/dev/null 2>&1 <<<"${existing_secret_json}"; then
+    echo "Existing Secret Manager payload in ${PROJECT_ID}/${ARGOCD_SECRET_NAME} is not valid JSON." >&2
+    echo "Run with FORCE_RESEED=1 and ARGOCD_ADMIN_PASSWORD (or ARGOCD_ADMIN_BCRYPT_HASH) to write a fresh version." >&2
+    echo "If Argo CD already uses this secret and you want to preserve sessions, also pass ARGOCD_SERVER_SECRETKEY explicitly." >&2
+    exit 1
+  fi
 fi
 
 if ! secret_exists; then

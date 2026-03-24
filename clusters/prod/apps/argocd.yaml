@@ -28,6 +28,9 @@ spec:
     - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
       targetRevision: main
       ref: values
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      path: clusters/prod/argocd
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

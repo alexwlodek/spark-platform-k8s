@@ -22,7 +22,7 @@ services:
   - name: argocd
     namespace: argocd
     host: argocd.prod.alexwlodek.com
-    serviceName: argocd-server
-    servicePort: 80
+    serviceName: argocd-public-proxy
+    servicePort: 8080
     healthCheckPath: /healthz
-    healthCheckPort: 80
+    healthCheckPort: 8080
