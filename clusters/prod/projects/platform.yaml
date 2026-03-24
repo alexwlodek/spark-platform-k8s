@@ -4,7 +4,7 @@ metadata:
   name: platform
   namespace: argocd
 spec:
-  description: Platform components + production apps (EKS)
+  description: Platform components + production apps (GKE phase 1)
   sourceRepos:
     - https://github.com/alexwlodek/spark-platform-k8s.git
     - https://prometheus-community.github.io/helm-charts

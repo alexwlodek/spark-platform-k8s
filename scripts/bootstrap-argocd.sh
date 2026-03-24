@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 DEPLOY_ENV="${DEPLOY_ENV:-dev}"
 KUBE_CONTEXT="${KUBE_CONTEXT:-}"
 ARGO_NAMESPACE="${ARGO_NAMESPACE:-argocd}"
@@ -11,10 +14,10 @@ ARGOCD_CHART_VERSION="${ARGOCD_CHART_VERSION:-7.7.0}"
 ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-300s}"
 SKIP_INSTALL="${SKIP_INSTALL:-0}"
 
-ROOT_FILE="clusters/${DEPLOY_ENV}/root.yaml"
-PROJECT_FILE="clusters/${DEPLOY_ENV}/projects/platform.yaml"
-COMMON_VALUES_FILE="values/common/argocd.yaml"
-ENV_VALUES_FILE="values/${DEPLOY_ENV}/argocd.yaml"
+ROOT_FILE="${REPO_ROOT}/clusters/${DEPLOY_ENV}/root.yaml"
+PROJECT_FILE="${REPO_ROOT}/clusters/${DEPLOY_ENV}/projects/platform.yaml"
+COMMON_VALUES_FILE="${REPO_ROOT}/values/common/argocd.yaml"
+ENV_VALUES_FILE="${REPO_ROOT}/values/${DEPLOY_ENV}/argocd.yaml"
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
 require kubectl

@@ -1,4 +1,4 @@
-# EKS/PROD phase 1: bootstrap only spark-operator.
+# GKE/PROD phase 1: bootstrap only spark-operator.
 replicaCount: 2
 
 webhook:

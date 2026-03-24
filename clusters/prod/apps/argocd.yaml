@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: platform
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: argocd-secret
+      namespace: argocd
+      jsonPointers:
+        - /data
+  sources:
+    - repoURL: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      targetRevision: 7.7.0
+      helm:
+        parameters:
+          - name: configs.secret.createSecret
+            value: "false"
+        valueFiles:
+          - $values/values/common/argocd.yaml
+          - $values/values/prod/argocd.yaml
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+      targetRevision: main
+      path: clusters/prod/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true

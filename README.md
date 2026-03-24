@@ -44,13 +44,15 @@ Hosts:
 
 ```bash
 DEPLOY_ENV=dev KUBE_CONTEXT=kind-data-platform-dev scripts/bootstrap-argocd.sh
-DEPLOY_ENV=prod KUBE_CONTEXT=data-platform-prod scripts/bootstrap-argocd.sh
+DEPLOY_ENV=prod KUBE_CONTEXT=gke_data-platform-prod-491113_europe-central2_data-platform-prod scripts/bootstrap-argocd.sh
 ```
 
 Wrappers:
 
 - `scripts/dev-bootstrap-argocd.sh`
+- `scripts/prod-deploy.sh` (`--infra`, `--bootstrap`, `--all`)
 - `scripts/prod-bootstrap-argocd.sh`
+- `scripts/prod-up.sh` (GKE phase-1: get credentials + seed Argo CD secret in Secret Manager + bootstrap Argo CD)
 
 By default bootstrap installs Argo CD via pinned Helm chart version (`7.7.0`) and then applies:
 
@@ -86,8 +88,19 @@ aws eks update-kubeconfig --region eu-central-1 --name data-platform-prod --alia
 scripts/prod-bootstrap-argocd.sh
 ```
 
-Phase-1 production root app ships with `spark-operator` on automated sync.
-Security apps (`security-external-secrets`, `security-gcp-secretmanager`) are present only in `prod` and remain manual-sync while production bootstrap stays staged.
+Phase-1 production root app ships with `argocd`, `security-external-secrets`, `security-gcp-secretmanager`, and `spark-operator`.
+The phased GKE production entrypoint is:
+
+```bash
+ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' scripts/prod-deploy.sh --all
+```
+
+You can also split it explicitly:
+
+```bash
+scripts/prod-deploy.sh --infra
+ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' scripts/prod-deploy.sh --bootstrap
+```
 
 ## Kind image cache (GHCR)
 
