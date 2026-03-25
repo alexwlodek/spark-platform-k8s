@@ -7,6 +7,35 @@ metadata:
     argocd.argoproj.io/sync-wave: "21"
 spec:
   project: platform
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: elasticsearch-master
+      namespace: logging
+      jsonPointers:
+        - /spec/persistentVolumeClaimRetentionPolicy
+        - /spec/revisionHistoryLimit
+        - /spec/template/metadata/annotations
+        - /spec/template/spec/affinity/nodeAffinity
+        - /spec/template/spec/affinity/podAffinity
+        - /spec/template/spec/affinity/podAntiAffinity
+        - /spec/template/spec/containers/0/env/1/valueFrom/fieldRef/apiVersion
+        - /spec/template/spec/containers/0/ports/0/protocol
+        - /spec/template/spec/containers/0/ports/1/protocol
+        - /spec/template/spec/containers/0/terminationMessagePath
+        - /spec/template/spec/containers/0/terminationMessagePolicy
+        - /spec/template/spec/dnsPolicy
+        - /spec/template/spec/restartPolicy
+        - /spec/template/spec/schedulerName
+        - /spec/template/spec/securityContext/supplementalGroups
+        - /spec/template/spec/securityContext/sysctls
+        - /spec/template/spec/serviceAccount
+        - /spec/template/spec/terminationGracePeriodSeconds
+        - /spec/template/spec/volumes/1/configMap/defaultMode
+        - /spec/volumeClaimTemplates/0/apiVersion
+        - /spec/volumeClaimTemplates/0/kind
+        - /spec/volumeClaimTemplates/0/spec/volumeMode
+        - /spec/volumeClaimTemplates/0/status
   sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: elasticsearch
@@ -28,4 +57,5 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - RespectIgnoreDifferences=true
       - ServerSideApply=true
