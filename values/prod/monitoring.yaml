@@ -11,6 +11,11 @@ grafana:
       domain: grafana.prod.alexwlodek.com
       root_url: https://grafana.prod.alexwlodek.com
 
+kube-state-metrics:
+  service:
+    annotations:
+      cloud.google.com/neg: '{"ingress":true}'
+
 prometheus:
   prometheusSpec:
     storageSpec:
