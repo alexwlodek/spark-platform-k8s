@@ -1,3 +1,6 @@
+image:
+  tag: "479"
+
 trino:
   nodeEnvironment: prod
   additionalCatalogs:
