@@ -11,17 +11,18 @@ source "${SCRIPT_DIR}/lib/terraform.sh"
 
 ENV_NAME=""
 ENV_FILE=""
-AUTO_APPROVE="0"
+AUTO_APPROVE="${AUTO_APPROVE:-1}"
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/prod-up.sh --env prod [--env-file local/prod.env.sh] [--auto-approve]
+  ./scripts/prod-up.sh --env prod [--env-file local/prod.env.sh] [--manual-approve]
 
 Options:
   --env <name>        Environment to provision (currently only: prod)
   --env-file <path>   Override the default local env file path
-  --auto-approve      Pass -auto-approve to terraform apply for each stage
+  --auto-approve      Explicitly enable automatic Terraform apply confirmation (default)
+  --manual-approve    Require manual confirmation during Terraform apply
   -h, --help          Show this help
 EOF
 }
@@ -41,6 +42,10 @@ parse_args() {
         ;;
       --auto-approve)
         AUTO_APPROVE="1"
+        shift
+        ;;
+      --manual-approve)
+        AUTO_APPROVE="0"
         shift
         ;;
       -h|--help)

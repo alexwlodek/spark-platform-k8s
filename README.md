@@ -140,7 +140,7 @@ What it does:
 - applies the prod `AppProject` and root app
 - waits for the key External Secrets, gateway, certificate, and public Argo CD endpoint to become ready
 
-`--auto-approve` is available if you want Terraform applies to skip the interactive confirmation prompt.
+Terraform applies are auto-confirmed by default. Use `--manual-approve` if you want the interactive prompt back.
 
 The production root app ships the shared public access path plus the managed data services that are safe to run on GKE today:
 

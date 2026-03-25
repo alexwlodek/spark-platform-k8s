@@ -10,14 +10,14 @@ source "${SCRIPT_DIR}/lib/validate-env.sh"
 source "${SCRIPT_DIR}/lib/terraform.sh"
 
 MODE="all"
-AUTO_APPROVE="0"
+AUTO_APPROVE="${AUTO_APPROVE:-1}"
 ENV_NAME="prod"
 ENV_FILE=""
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/prod-deploy.sh [--network | --gke | --platform | --infra | --bootstrap | --all] [--auto-approve] [--env-file local/prod.env.sh]
+  ./scripts/prod-deploy.sh [--network | --gke | --platform | --infra | --bootstrap | --all] [--manual-approve] [--env-file local/prod.env.sh]
 
 Modes:
   --network      Apply only infra/envs/prod/00-network
@@ -28,7 +28,8 @@ Modes:
   --all          Run infra first, then bootstrap (default)
 
 Options:
-  --auto-approve Pass -auto-approve to terraform apply
+  --auto-approve Explicitly enable automatic Terraform apply confirmation (default)
+  --manual-approve Require manual confirmation during Terraform apply
   --env-file     Override the default env file (local/prod.env.sh)
   -h, --help     Show this help
 
@@ -69,6 +70,10 @@ parse_args() {
         ;;
       --auto-approve)
         AUTO_APPROVE="1"
+        shift
+        ;;
+      --manual-approve)
+        AUTO_APPROVE="0"
         shift
         ;;
       --env-file)
