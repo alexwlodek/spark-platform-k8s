@@ -1,83 +1,39 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-TERRAFORM_GCP_ROOT_DIR="${TERRAFORM_GCP_ROOT_DIR:-${REPO_ROOT}/infra/envs/gcp}"
-TERRAFORM_GCP_NETWORK_DIR="${TERRAFORM_GCP_NETWORK_DIR:-${TERRAFORM_GCP_ROOT_DIR}/network}"
-TERRAFORM_GCP_GKE_DIR="${TERRAFORM_GCP_GKE_DIR:-${TERRAFORM_GCP_ROOT_DIR}/gke}"
+# shellcheck source=lib/common.sh
+source "${SCRIPT_DIR}/lib/common.sh"
+# shellcheck source=lib/terraform.sh
+source "${SCRIPT_DIR}/lib/terraform.sh"
+
+apply_prod_env_defaults
+
+TERRAFORM_ENV_ROOT_DIR="${TERRAFORM_ENV_ROOT_DIR:-$(repo_root)/infra/envs/${DEPLOY_ENV}}"
+TERRAFORM_NETWORK_DIR="${TERRAFORM_NETWORK_DIR:-${TERRAFORM_ENV_ROOT_DIR}/00-network}"
+TERRAFORM_GKE_DIR="${TERRAFORM_GKE_DIR:-${TERRAFORM_ENV_ROOT_DIR}/10-gke}"
+TERRAFORM_SHARED_SERVICES_DIR="${TERRAFORM_SHARED_SERVICES_DIR:-${TERRAFORM_ENV_ROOT_DIR}/20-shared-services}"
+TERRAFORM_GCP_ROOT_DIR="${TERRAFORM_GCP_ROOT_DIR:-${TERRAFORM_ENV_ROOT_DIR}}"
+TERRAFORM_GCP_NETWORK_DIR="${TERRAFORM_GCP_NETWORK_DIR:-${TERRAFORM_NETWORK_DIR}}"
+TERRAFORM_GCP_GKE_DIR="${TERRAFORM_GCP_GKE_DIR:-${TERRAFORM_GKE_DIR}}"
+TERRAFORM_GCP_PLATFORM_DIR="${TERRAFORM_GCP_PLATFORM_DIR:-${TERRAFORM_SHARED_SERVICES_DIR}}"
 TERRAFORM_GCP_DIR="${TERRAFORM_GCP_DIR:-${TERRAFORM_GCP_GKE_DIR}}"
 
-looks_like_tf_identifier() {
-  local value="$1"
-  [[ "${value}" =~ ^[a-z0-9][a-z0-9._-]*$ ]]
-}
+PUBLIC_GATEWAY_IP_ADDRESS="${PUBLIC_GATEWAY_IP_ADDRESS:-$(terraform_output_raw_if_exists "${TERRAFORM_NETWORK_DIR}" public_gateway_ip_address)}"
 
-resolve_tf_output() {
-  local terraform_dir="$1"
-  local output_name="$2"
-  local value
-
-  if ! command -v terraform >/dev/null 2>&1; then
-    return 0
-  fi
-
-  if [[ ! -d "${terraform_dir}" ]]; then
-    return 0
-  fi
-
-  value="$(terraform -chdir="${terraform_dir}" output -raw "${output_name}" 2>/dev/null || true)"
-  value="${value//$'\r'/}"
-
-  if [[ -z "${value}" ]]; then
-    return 0
-  fi
-
-  if ! looks_like_tf_identifier "${value}"; then
-    return 0
-  fi
-
-  printf '%s' "${value}"
-}
-
-resolve_tf_output_raw() {
-  local terraform_dir="$1"
-  local output_name="$2"
-  local value
-
-  if ! command -v terraform >/dev/null 2>&1; then
-    return 0
-  fi
-
-  if [[ ! -d "${terraform_dir}" ]]; then
-    return 0
-  fi
-
-  value="$(terraform -chdir="${terraform_dir}" output -raw "${output_name}" 2>/dev/null || true)"
-  value="${value//$'\r'/}"
-
-  if [[ -z "${value}" ]]; then
-    return 0
-  fi
-
-  printf '%s' "${value}"
-}
-
-PROJECT_ID="${PROJECT_ID:-$(resolve_tf_output "${TERRAFORM_GCP_GKE_DIR}" project_id)}"
-PROJECT_ID="${PROJECT_ID:-$(resolve_tf_output "${TERRAFORM_GCP_NETWORK_DIR}" project_id)}"
-PROJECT_ID="${PROJECT_ID:-data-platform-prod-491113}"
-
-REGION="${REGION:-$(resolve_tf_output "${TERRAFORM_GCP_GKE_DIR}" cluster_region)}"
-REGION="${REGION:-$(resolve_tf_output "${TERRAFORM_GCP_NETWORK_DIR}" region)}"
-REGION="${REGION:-europe-central2}"
-
-CLUSTER_NAME="${CLUSTER_NAME:-$(resolve_tf_output "${TERRAFORM_GCP_GKE_DIR}" cluster_name)}"
-CLUSTER_NAME="${CLUSTER_NAME:-data-platform-prod}"
-
-PUBLIC_GATEWAY_IP_NAME="${PUBLIC_GATEWAY_IP_NAME:-$(resolve_tf_output "${TERRAFORM_GCP_NETWORK_DIR}" public_gateway_ip_name)}"
-PUBLIC_GATEWAY_IP_NAME="${PUBLIC_GATEWAY_IP_NAME:-data-platform-prod-public-gateway-ip}"
-
-PUBLIC_GATEWAY_IP_ADDRESS="${PUBLIC_GATEWAY_IP_ADDRESS:-$(resolve_tf_output_raw "${TERRAFORM_GCP_NETWORK_DIR}" public_gateway_ip_address)}"
-
-KUBE_CONTEXT="${KUBE_CONTEXT:-gke_${PROJECT_ID}_${REGION}_${CLUSTER_NAME}}"
-
-export SCRIPT_DIR REPO_ROOT TERRAFORM_GCP_ROOT_DIR TERRAFORM_GCP_NETWORK_DIR TERRAFORM_GCP_GKE_DIR TERRAFORM_GCP_DIR PROJECT_ID REGION CLUSTER_NAME PUBLIC_GATEWAY_IP_NAME PUBLIC_GATEWAY_IP_ADDRESS KUBE_CONTEXT
+export SCRIPT_DIR
+export REPO_ROOT
+export TERRAFORM_ENV_ROOT_DIR
+export TERRAFORM_NETWORK_DIR
+export TERRAFORM_GKE_DIR
+export TERRAFORM_SHARED_SERVICES_DIR
+export TERRAFORM_GCP_ROOT_DIR
+export TERRAFORM_GCP_NETWORK_DIR
+export TERRAFORM_GCP_GKE_DIR
+export TERRAFORM_GCP_PLATFORM_DIR
+export TERRAFORM_GCP_DIR
+export PROJECT_ID
+export REGION
+export CLUSTER_NAME
+export PUBLIC_GATEWAY_IP_NAME
+export PUBLIC_GATEWAY_IP_ADDRESS
+export KUBE_CONTEXT

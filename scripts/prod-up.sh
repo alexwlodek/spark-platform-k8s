@@ -2,36 +2,60 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=prod-gcp-env.sh
-source "${SCRIPT_DIR}/prod-gcp-env.sh"
+# shellcheck source=lib/common.sh
+source "${SCRIPT_DIR}/lib/common.sh"
+# shellcheck source=lib/validate-env.sh
+source "${SCRIPT_DIR}/lib/validate-env.sh"
+# shellcheck source=lib/terraform.sh
+source "${SCRIPT_DIR}/lib/terraform.sh"
 
-require() { command -v "$1" >/dev/null 2>&1 || { echo "Missing dependency: $1" >&2; exit 1; }; }
-validate_identifier() {
-  local name="$1"
-  local value="$2"
+ENV_NAME=""
+ENV_FILE=""
+AUTO_APPROVE="0"
 
-  if [[ ! "${value}" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
-    echo "Invalid ${name}: '${value}'" >&2
-    echo "Set ${name} explicitly or run terraform apply first." >&2
-    exit 1
-  fi
+usage() {
+  cat <<'EOF'
+Usage:
+  ./scripts/prod-up.sh --env prod [--env-file local/prod.env.sh] [--auto-approve]
+
+Options:
+  --env <name>        Environment to provision (currently only: prod)
+  --env-file <path>   Override the default local env file path
+  --auto-approve      Pass -auto-approve to terraform apply for each stage
+  -h, --help          Show this help
+EOF
 }
 
-require gcloud
-require kubectl
-require curl
-
-validate_identifier PROJECT_ID "${PROJECT_ID}"
-validate_identifier REGION "${REGION}"
-validate_identifier CLUSTER_NAME "${CLUSTER_NAME}"
-
-POST_BOOTSTRAP_WAIT_SECONDS="${POST_BOOTSTRAP_WAIT_SECONDS:-600}"
-PUBLIC_GATEWAY_NAMESPACE="${PUBLIC_GATEWAY_NAMESPACE:-gateway-system}"
-PUBLIC_GATEWAY_NAME="${PUBLIC_GATEWAY_NAME:-prod-public-gateway}"
-PUBLIC_GATEWAY_CERTIFICATE_NAME="${PUBLIC_GATEWAY_CERTIFICATE_NAME:-prod-wildcard}"
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --env)
+        [[ $# -ge 2 ]] || die "Missing value for --env"
+        ENV_NAME="$2"
+        shift 2
+        ;;
+      --env-file)
+        [[ $# -ge 2 ]] || die "Missing value for --env-file"
+        ENV_FILE="$2"
+        shift 2
+        ;;
+      --auto-approve)
+        AUTO_APPROVE="1"
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        die "Unknown argument: $1"
+        ;;
+    esac
+  done
+}
 
 resolve_argocd_public_host_from_values() {
-  local values_file="${REPO_ROOT}/values/prod/public-gateway.yaml"
+  local values_file="$(repo_root)/values/prod/public-gateway.yaml"
 
   if [[ ! -f "${values_file}" ]]; then
     return 0
@@ -48,8 +72,6 @@ resolve_argocd_public_host_from_values() {
     }
   ' "${values_file}"
 }
-
-ARGOCD_PUBLIC_HOST="${ARGOCD_PUBLIC_HOST:-$(resolve_argocd_public_host_from_values)}"
 
 resolve_gateway_ip() {
   local gateway_ip="${PUBLIC_GATEWAY_IP_ADDRESS:-}"
@@ -68,7 +90,7 @@ wait_for_deployment_ready() {
   local deployment="$2"
   local deadline=$((SECONDS + POST_BOOTSTRAP_WAIT_SECONDS))
 
-  echo "Waiting for deployment ${namespace}/${deployment}..."
+  log "Waiting for deployment ${namespace}/${deployment}"
   while (( SECONDS < deadline )); do
     if kubectl -n "${namespace}" rollout status "deployment/${deployment}" --timeout=5s >/dev/null 2>&1; then
       return 0
@@ -76,8 +98,7 @@ wait_for_deployment_ready() {
     sleep 5
   done
 
-  echo "Timed out waiting for deployment ${namespace}/${deployment}" >&2
-  return 1
+  die "Timed out waiting for deployment ${namespace}/${deployment}"
 }
 
 wait_for_clustersecretstore_ready() {
@@ -85,7 +106,7 @@ wait_for_clustersecretstore_ready() {
   local deadline=$((SECONDS + POST_BOOTSTRAP_WAIT_SECONDS))
   local ready=""
 
-  echo "Waiting for ClusterSecretStore ${name}..."
+  log "Waiting for ClusterSecretStore ${name}"
   while (( SECONDS < deadline )); do
     ready="$(kubectl get clustersecretstore "${name}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
     if [[ "${ready}" == "True" ]]; then
@@ -94,8 +115,7 @@ wait_for_clustersecretstore_ready() {
     sleep 5
   done
 
-  echo "Timed out waiting for ClusterSecretStore ${name}" >&2
-  return 1
+  die "Timed out waiting for ClusterSecretStore ${name}"
 }
 
 wait_for_externalsecret_ready() {
@@ -104,7 +124,7 @@ wait_for_externalsecret_ready() {
   local deadline=$((SECONDS + POST_BOOTSTRAP_WAIT_SECONDS))
   local ready=""
 
-  echo "Waiting for ExternalSecret ${namespace}/${name}..."
+  log "Waiting for ExternalSecret ${namespace}/${name}"
   while (( SECONDS < deadline )); do
     ready="$(kubectl -n "${namespace}" get externalsecret "${name}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
     if [[ "${ready}" == "True" ]]; then
@@ -113,8 +133,7 @@ wait_for_externalsecret_ready() {
     sleep 5
   done
 
-  echo "Timed out waiting for ExternalSecret ${namespace}/${name}" >&2
-  return 1
+  die "Timed out waiting for ExternalSecret ${namespace}/${name}"
 }
 
 wait_for_secret_data_keys() {
@@ -122,12 +141,13 @@ wait_for_secret_data_keys() {
   local name="$2"
   local description="$3"
   shift 3
-  local deadline=$((SECONDS + POST_BOOTSTRAP_WAIT_SECONDS))
-  local key=""
-  local value=""
-  local all_present=0
 
-  echo "Waiting for secret ${namespace}/${name} to contain ${description}..."
+  local deadline=$((SECONDS + POST_BOOTSTRAP_WAIT_SECONDS))
+  local key
+  local value
+  local all_present
+
+  log "Waiting for secret ${namespace}/${name} to contain ${description}"
   while (( SECONDS < deadline )); do
     all_present=1
     for key in "$@"; do
@@ -145,15 +165,14 @@ wait_for_secret_data_keys() {
     sleep 5
   done
 
-  echo "Timed out waiting for secret ${namespace}/${name}" >&2
-  return 1
+  die "Timed out waiting for secret ${namespace}/${name}"
 }
 
 wait_for_gateway_programmed() {
   local deadline=$((SECONDS + POST_BOOTSTRAP_WAIT_SECONDS))
   local programmed=""
 
-  echo "Waiting for Gateway ${PUBLIC_GATEWAY_NAMESPACE}/${PUBLIC_GATEWAY_NAME}..."
+  log "Waiting for Gateway ${PUBLIC_GATEWAY_NAMESPACE}/${PUBLIC_GATEWAY_NAME}"
   while (( SECONDS < deadline )); do
     programmed="$(kubectl -n "${PUBLIC_GATEWAY_NAMESPACE}" get gateway "${PUBLIC_GATEWAY_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Programmed")].status}' 2>/dev/null || true)"
     if [[ "${programmed}" == "True" ]]; then
@@ -162,15 +181,14 @@ wait_for_gateway_programmed() {
     sleep 5
   done
 
-  echo "Timed out waiting for Gateway ${PUBLIC_GATEWAY_NAMESPACE}/${PUBLIC_GATEWAY_NAME}" >&2
-  return 1
+  die "Timed out waiting for Gateway ${PUBLIC_GATEWAY_NAMESPACE}/${PUBLIC_GATEWAY_NAME}"
 }
 
 wait_for_certificate_ready() {
   local deadline=$((SECONDS + POST_BOOTSTRAP_WAIT_SECONDS))
   local ready=""
 
-  echo "Waiting for Certificate ${PUBLIC_GATEWAY_NAMESPACE}/${PUBLIC_GATEWAY_CERTIFICATE_NAME}..."
+  log "Waiting for Certificate ${PUBLIC_GATEWAY_NAMESPACE}/${PUBLIC_GATEWAY_CERTIFICATE_NAME}"
   while (( SECONDS < deadline )); do
     ready="$(kubectl -n "${PUBLIC_GATEWAY_NAMESPACE}" get certificate "${PUBLIC_GATEWAY_CERTIFICATE_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
     if [[ "${ready}" == "True" ]]; then
@@ -179,8 +197,7 @@ wait_for_certificate_ready() {
     sleep 5
   done
 
-  echo "Timed out waiting for Certificate ${PUBLIC_GATEWAY_NAMESPACE}/${PUBLIC_GATEWAY_CERTIFICATE_NAME}" >&2
-  return 1
+  die "Timed out waiting for Certificate ${PUBLIC_GATEWAY_NAMESPACE}/${PUBLIC_GATEWAY_CERTIFICATE_NAME}"
 }
 
 wait_for_public_https() {
@@ -190,11 +207,11 @@ wait_for_public_https() {
   local http_code=""
 
   if [[ -z "${host}" || -z "${gateway_ip}" ]]; then
-    echo "Skipping public HTTPS wait because host or gateway IP is missing." >&2
+    warn "Skipping public HTTPS wait because the host or gateway IP is missing"
     return 0
   fi
 
-  echo "Waiting for HTTPS endpoint https://${host}/ via ${gateway_ip}..."
+  log "Waiting for https://${host}/ via ${gateway_ip}"
   while (( SECONDS < deadline )); do
     http_code="$(
       curl --silent --show-error --insecure \
@@ -215,29 +232,42 @@ wait_for_public_https() {
     sleep 5
   done
 
-  echo "Timed out waiting for https://${host}/ (last HTTP code: ${http_code:-n/a})" >&2
-  return 1
+  die "Timed out waiting for https://${host}/ (last HTTP code: ${http_code:-n/a})"
 }
 
-echo "Setting active gcloud project to '${PROJECT_ID}'..."
-gcloud config set project "${PROJECT_ID}" >/dev/null
+parse_args "$@"
 
-echo "Configuring kubectl context for GKE cluster '${CLUSTER_NAME}'..."
-gcloud container clusters get-credentials "${CLUSTER_NAME}" \
-  --region "${REGION}" \
-  --project "${PROJECT_ID}" >/dev/null
+[[ -n "${ENV_NAME}" ]] || die "Use --env prod"
+[[ "${ENV_NAME}" == "prod" ]] || die "Only --env prod is currently supported"
 
-ALLOW_EMPTY_TOKEN=1 "${SCRIPT_DIR}/prod-cloudflare-secret-seed.sh"
-"${SCRIPT_DIR}/prod-grafana-secret-seed.sh"
+ENV_FILE="${ENV_FILE:-$(default_env_file "${ENV_NAME}")}"
 
-APPLY_K8S_SECRET=1 \
-ARGO_NAMESPACE="${ARGO_NAMESPACE:-argocd}" \
-"${SCRIPT_DIR}/prod-argocd-secret-seed.sh"
+log "Loading environment from ${ENV_FILE}"
+load_env_file "${ENV_FILE}"
+validate_prod_env
+export_prod_terraform_vars
 
-PROJECT_ID="${PROJECT_ID}" \
-REGION="${REGION}" \
-CLUSTER_NAME="${CLUSTER_NAME}" \
-"${SCRIPT_DIR}/prod-bootstrap-argocd.sh"
+NETWORK_DIR="$(prod_stage_dir "${ENV_NAME}" "00-network")"
+GKE_DIR="$(prod_stage_dir "${ENV_NAME}" "10-gke")"
+SHARED_SERVICES_DIR="$(prod_stage_dir "${ENV_NAME}" "20-shared-services")"
+
+log "Applying staged Terraform for ${ENV_NAME}"
+terraform_init_apply_dir "${NETWORK_DIR}" "${AUTO_APPROVE}"
+terraform_init_apply_dir "${GKE_DIR}" "${AUTO_APPROVE}"
+terraform_init_apply_dir "${SHARED_SERVICES_DIR}" "${AUTO_APPROVE}"
+
+log "Setting active gcloud project to ${GCP_PROJECT_ID}"
+gcloud config set project "${GCP_PROJECT_ID}" >/dev/null
+
+log "Fetching credentials for GKE cluster ${GKE_CLUSTER_NAME}"
+gcloud container clusters get-credentials "${GKE_CLUSTER_NAME}" \
+  --region "${GCP_REGION}" \
+  --project "${GCP_PROJECT_ID}" >/dev/null
+
+# Generic bootstrap is the only prod bootstrap entrypoint now.
+"${SCRIPT_DIR}/bootstrap-argocd.sh" --env "${ENV_NAME}" --context "${KUBE_CONTEXT}"
+
+ARGOCD_PUBLIC_HOST="${ARGOCD_PUBLIC_HOST:-$(resolve_argocd_public_host_from_values)}"
 
 wait_for_deployment_ready external-secrets external-secrets
 wait_for_clustersecretstore_ready gcp-secretmanager
@@ -251,12 +281,12 @@ wait_for_public_https "${ARGOCD_PUBLIC_HOST}" "$(resolve_gateway_ip)"
 
 kubectl -n argocd delete secret argocd-initial-admin-secret --ignore-not-found >/dev/null 2>&1 || true
 
-echo
-echo "✅ PROD bootstrap ready."
-echo "Check:"
-echo "  - https://${ARGOCD_PUBLIC_HOST}/"
-echo "  - kubectl -n argocd get applications"
-echo "  - kubectl get gateway -A"
-echo "  - kubectl get httproute -A"
-echo "  - kubectl -n gateway-system get certificate"
-echo "  - kubectl -n spark-operator get pods"
+printf '\n'
+log "Production bootstrap is ready"
+printf 'Next commands:\n'
+printf '  kubectl -n argocd get applications\n'
+printf '  kubectl get gateway -A\n'
+printf '  kubectl get httproute -A\n'
+printf '  kubectl -n gateway-system get certificate\n'
+printf '  kubectl -n spark-operator get pods\n'
+printf '  https://%s/\n' "${ARGOCD_PUBLIC_HOST}"

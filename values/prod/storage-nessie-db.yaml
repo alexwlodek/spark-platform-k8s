@@ -1,2 +1,2 @@
-# PROD uses Cloud SQL for PostgreSQL from Terraform (`infra/envs/gcp/platform`).
+# PROD uses Cloud SQL for PostgreSQL from Terraform (`infra/envs/prod/20-shared-services`).
 # The in-cluster PostgreSQL StatefulSet stays DEV-only and is intentionally not deployed in PROD.

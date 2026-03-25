@@ -1,2 +1,2 @@
-# PROD uses Google Cloud Storage from Terraform (`infra/envs/gcp/platform`).
+# PROD uses Google Cloud Storage from Terraform (`infra/envs/prod/20-shared-services`).
 # In-cluster MinIO stays DEV-only and is intentionally not deployed in PROD.

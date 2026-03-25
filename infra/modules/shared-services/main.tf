@@ -4,7 +4,7 @@ locals {
       environment = var.environment
       platform    = "data-platform"
       managed_by  = "terraform"
-      stack       = "platform"
+      stack       = "shared-services"
     },
     var.labels
   )
@@ -23,7 +23,7 @@ data "google_compute_network" "main" {
 resource "google_storage_bucket" "lake" {
   name                        = var.lake_bucket_name
   location                    = var.lake_bucket_location
-  force_destroy               = false
+  force_destroy               = var.lake_bucket_force_destroy
   uniform_bucket_level_access = true
   public_access_prevention    = "enforced"
   labels                      = local.common_labels

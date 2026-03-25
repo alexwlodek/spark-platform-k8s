@@ -1,0 +1,31 @@
+module "shared_services" {
+  source = "../../../modules/shared-services"
+
+  project_id                              = var.project_id
+  region                                  = var.region
+  environment                             = var.environment
+  network_name                            = var.network_name
+  apps_namespace                          = var.apps_namespace
+  lake_bucket_name                        = var.lake_bucket_name
+  lake_bucket_location                    = var.lake_bucket_location
+  lake_bucket_force_destroy               = var.lake_bucket_force_destroy
+  lake_runtime_gsa_name                   = var.lake_runtime_gsa_name
+  nessie_runtime_gsa_name                 = var.nessie_runtime_gsa_name
+  spark_service_account_name              = var.spark_service_account_name
+  trino_service_account_name              = var.trino_service_account_name
+  nessie_service_account_name             = var.nessie_service_account_name
+  cloud_sql_instance_name                 = var.cloud_sql_instance_name
+  cloud_sql_database_version              = var.cloud_sql_database_version
+  cloud_sql_edition                       = var.cloud_sql_edition
+  cloud_sql_tier                          = var.cloud_sql_tier
+  cloud_sql_availability_type             = var.cloud_sql_availability_type
+  cloud_sql_disk_type                     = var.cloud_sql_disk_type
+  cloud_sql_disk_size_gb                  = var.cloud_sql_disk_size_gb
+  cloud_sql_backup_start_time             = var.cloud_sql_backup_start_time
+  cloud_sql_enable_point_in_time_recovery = var.cloud_sql_enable_point_in_time_recovery
+  cloud_sql_deletion_protection           = var.cloud_sql_deletion_protection
+  cloud_sql_database_name                 = var.cloud_sql_database_name
+  cloud_sql_user_name                     = var.cloud_sql_user_name
+  nessie_secret_id                        = var.nessie_secret_id
+  labels                                  = var.labels
+}

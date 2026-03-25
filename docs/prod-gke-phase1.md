@@ -190,7 +190,7 @@ Optional lower-level steps if you want them fully manual:
 ```bash
 gcloud container clusters get-credentials data-platform-prod --region europe-central2 --project data-platform-prod-491113
 ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' scripts/prod-argocd-secret-seed.sh
-scripts/prod-bootstrap-argocd.sh
+./scripts/bootstrap-argocd.sh --env prod
 ```
 
 Validate phase 1:

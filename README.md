@@ -8,11 +8,17 @@ Current setup:
 - `prod` target environment (`data-platform-prod`): `clusters/prod` + `values/prod`
 - shared values: `values/common`
 
-`infra/envs/prod` is still a legacy AWS/EKS template set and is not the forward target. Production infrastructure now lives under:
+Production infrastructure is staged so each layer has its own Terraform root and state boundary:
 
-- `infra/envs/gcp/network`
-- `infra/envs/gcp/gke`
-- `infra/envs/gcp/platform`
+- `infra/envs/prod/00-network`
+- `infra/envs/prod/10-gke`
+- `infra/envs/prod/20-shared-services`
+
+Reusable Terraform code lives under:
+
+- `infra/modules/network`
+- `infra/modules/gke`
+- `infra/modules/shared-services`
 
 GitOps uses app-of-apps (`root.yaml`) and in-cluster destination (`https://kubernetes.default.svc`).
 
@@ -47,16 +53,15 @@ Hosts:
 `scripts/bootstrap-argocd.sh` supports environment/context selection:
 
 ```bash
-DEPLOY_ENV=dev KUBE_CONTEXT=kind-data-platform-dev scripts/bootstrap-argocd.sh
-DEPLOY_ENV=prod KUBE_CONTEXT=gke_data-platform-prod-491113_europe-central2_data-platform-prod scripts/bootstrap-argocd.sh
+./scripts/bootstrap-argocd.sh --env dev --context kind-data-platform-dev
+./scripts/bootstrap-argocd.sh --env prod --context gke_data-platform-prod-491113_europe-central2_data-platform-prod
 ```
 
 Wrappers:
 
 - `scripts/dev-bootstrap-argocd.sh`
-- `scripts/prod-deploy.sh` (`--network`, `--gke`, `--platform`, `--infra`, `--bootstrap`, `--all`)
-- `scripts/prod-bootstrap-argocd.sh`
-- `scripts/prod-up.sh` (get credentials + seed Argo CD and Cloudflare bootstrap secrets + bootstrap Argo CD + wait for External Secrets readiness)
+- `scripts/prod-up.sh`
+- `scripts/prod-destroy.sh`
 
 By default bootstrap installs Argo CD via pinned Helm chart version (`7.7.0`) and then applies:
 
@@ -65,49 +70,79 @@ By default bootstrap installs Argo CD via pinned Helm chart version (`7.7.0`) an
 
 ## PROD GCP infrastructure
 
-Terraform for production infrastructure is split into:
+Production bootstrap is driven by a local env file plus two operator entrypoints:
 
-- `infra/envs/gcp/network`
-- `infra/envs/gcp/gke`
-- `infra/envs/gcp/platform`
+- `local/prod.env.example`
+- `local/prod.env.sh` (gitignored)
+- `scripts/prod-up.sh`
+- `scripts/prod-destroy.sh`
+- `scripts/bootstrap-argocd.sh`
 
-Apply order:
+### Prerequisites
 
-1. `network` for VPC, subnet, Cloud NAT, reserved public IP, optional Cloudflare DNS records, and Private Service Access for Cloud SQL.
-2. `gke` for the production GKE cluster, node pools, Workload Identity, and cluster-level service accounts.
-3. `platform` for the managed data plane resources used by prod workloads:
+- `terraform`
+- `gcloud`
+- `kubectl`
+- `helm`
+- `jq`
+- `curl`
+- `openssl`
+- authenticated `gcloud` access to the target project
+
+### Why the infra is staged
+
+The production stack is intentionally not a single Terraform root. The stages keep the workflow readable, keep blast radius smaller, and make destroy order explicit:
+
+1. `00-network` provisions the VPC, subnet, Cloud NAT, reserved public IP, optional Cloudflare DNS records, and Private Service Access for Cloud SQL.
+2. `10-gke` provisions the production GKE cluster, node pools, Workload Identity plumbing, and cluster-level service accounts.
+3. `20-shared-services` provisions the managed data plane resources used by prod workloads:
    - GCS bucket
    - Cloud SQL for PostgreSQL
    - runtime GSAs and Workload Identity bindings
    - Secret Manager payload for Nessie DB credentials
 
-Suggested flow:
+### Local env file
+
+Create the local env file once and keep the real values out of git:
 
 ```bash
-cp infra/envs/gcp/network/terraform.tfvars.example infra/envs/gcp/network/terraform.tfvars
-cp infra/envs/gcp/gke/terraform.tfvars.example infra/envs/gcp/gke/terraform.tfvars
-cp infra/envs/gcp/platform/terraform.tfvars.example infra/envs/gcp/platform/terraform.tfvars
-
-terraform -chdir=infra/envs/gcp/network init
-terraform -chdir=infra/envs/gcp/network plan
-terraform -chdir=infra/envs/gcp/network apply
-
-terraform -chdir=infra/envs/gcp/gke init
-terraform -chdir=infra/envs/gcp/gke plan
-terraform -chdir=infra/envs/gcp/gke apply
-
-terraform -chdir=infra/envs/gcp/platform init
-terraform -chdir=infra/envs/gcp/platform plan
-terraform -chdir=infra/envs/gcp/platform apply
-
-# configure kubectl context (see terraform output too)
-gcloud container clusters get-credentials data-platform-prod --region europe-central2 --project data-platform-prod-491113
-
-# bootstrap Argo CD on prod cluster
-scripts/prod-bootstrap-argocd.sh
+cp local/prod.env.example local/prod.env.sh
 ```
 
-The production root app now ships the shared public access path plus the managed data services that are safe to run on GKE today:
+Fill in at least:
+
+- `GCP_PROJECT_ID`
+- `GCP_REGION`
+- `GCP_ZONES`
+- `GKE_CLUSTER_NAME`
+- `ARGOCD_ADMIN_PASSWORD` or `ARGOCD_ADMIN_BCRYPT_HASH`
+- `GRAFANA_ADMIN_PASSWORD`
+- `CLOUDFLARE_API_TOKEN`
+
+The env file is also the source of truth for environment-specific sensitive values used during bootstrap. `scripts/prod-up.sh` validates the file before it runs any expensive Terraform or cluster operations.
+
+### Provision
+
+Run the full production bootstrap with one command:
+
+```bash
+./scripts/prod-up.sh --env prod
+```
+
+What it does:
+
+- loads `local/prod.env.sh`
+- validates required variables and tooling
+- applies Terraform in order: `00-network` -> `10-gke` -> `20-shared-services`
+- fetches GKE credentials with `gcloud container clusters get-credentials`
+- seeds bootstrap secrets into GCP Secret Manager
+- installs or upgrades Argo CD
+- applies the prod `AppProject` and root app
+- waits for the key External Secrets, gateway, certificate, and public Argo CD endpoint to become ready
+
+`--auto-approve` is available if you want Terraform applies to skip the interactive confirmation prompt.
+
+The production root app ships the shared public access path plus the managed data services that are safe to run on GKE today:
 
 - `argocd`
 - `security-external-secrets`
@@ -122,25 +157,32 @@ The production root app now ships the shared public access path plus the managed
 - `storage-nessie`
 - `bi-trino`
 
-One-command production entrypoint:
+### Destroy
+
+Destroy runs in the reverse order and asks for confirmation unless you pass `--force`:
 
 ```bash
-ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' \
-CLOUDFLARE_API_TOKEN='replace-with-cloudflare-token' \
-scripts/prod-deploy.sh --all
+./scripts/prod-destroy.sh --env prod
 ```
 
-You can also split it explicitly:
+Force mode is available for unattended teardown:
 
 ```bash
-scripts/prod-deploy.sh --infra
-ARGOCD_ADMIN_PASSWORD='replace-with-strong-password' \
-CLOUDFLARE_API_TOKEN='replace-with-cloudflare-token' \
-scripts/prod-deploy.sh --bootstrap
+./scripts/prod-destroy.sh --env prod --force
 ```
 
-Details are documented in `docs/prod-gke-public-access.md`.
-Managed-service mapping and migration rationale live in `docs/prod-gcp-managed-services-migration.md`.
+The destroy flow:
+
+- loads and validates the local env file
+- performs best-effort Argo CD cleanup while the cluster still exists
+- destroys `20-shared-services` -> `10-gke` -> `00-network`
+
+Notes:
+
+- `prod-destroy.sh` enables bucket `force_destroy` during teardown so the lake bucket does not block destroy when it contains objects.
+- Some committed prod manifests still assume the portfolio repo's current naming conventions and project-specific values. If you change derived names such as the bucket, Cloud SQL instance, or runtime GSA identities, keep those committed prod values aligned with your env file.
+
+Details are documented in `docs/prod-gke-public-access.md`. Managed-service mapping and migration rationale live in `docs/prod-gcp-managed-services-migration.md`.
 
 ## Kind image cache (GHCR)
 

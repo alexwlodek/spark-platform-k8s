@@ -24,6 +24,9 @@ crash.*.log
 /scripts/dev-aws-sm-seed.sh
 /scripts/dev-aws-sm-auth.sh
 /scripts/prod-local-bootstrap.sh
+/local/*.env
+/local/*.env.sh
+/.secrets/
 
 # Python caches
 __pycache__/

@@ -87,10 +87,6 @@ resource "google_compute_global_address" "public_gateway" {
   address_type = "EXTERNAL"
   ip_version   = "IPV4"
 
-  lifecycle {
-    prevent_destroy = true
-  }
-
   depends_on = [google_project_service.compute]
 }
 
