@@ -1,10 +1,19 @@
-# PROD overrides for Nessie running in EKS with managed PostgreSQL backend.
 database:
-  # Replace with real RDS endpoint.
-  host: data-platform-prod-nessie.abcdefghijkl.eu-central-1.rds.amazonaws.com
+  host: 127.0.0.1
   port: 5432
   name: nessie
   existingSecret: platform-nessie-creds
+
+serviceAccount:
+  create: true
+  name: storage-nessie
+  annotations:
+    iam.gke.io/gcp-service-account: nessie-runtime@data-platform-prod-491113.iam.gserviceaccount.com
+
+cloudSqlProxy:
+  enabled: true
+  instanceConnectionName: data-platform-prod-491113:europe-central2:data-platform-prod-nessie
+  privateIP: true
 
 resources:
   requests:

@@ -16,6 +16,10 @@ spec:
       labels:
 {{ include "storage-nessie.labels" . | indent 8 }}
     spec:
+{{- if or .Values.serviceAccount.create .Values.serviceAccount.name }}
+      serviceAccountName: {{ include "storage-nessie.serviceAccountName" . | quote }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+{{- end }}
       containers:
         - name: nessie
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -66,3 +70,17 @@ spec:
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
             timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
             failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+{{- if .Values.cloudSqlProxy.enabled }}
+        - name: cloud-sql-proxy
+          image: "{{ .Values.cloudSqlProxy.image.repository }}:{{ .Values.cloudSqlProxy.image.tag }}"
+          imagePullPolicy: {{ .Values.cloudSqlProxy.image.pullPolicy | quote }}
+          args:
+            - "--structured-logs"
+{{- if .Values.cloudSqlProxy.privateIP }}
+            - "--private-ip"
+{{- end }}
+            - "--port={{ .Values.cloudSqlProxy.port }}"
+            - "{{ required "cloudSqlProxy.instanceConnectionName must be set when cloudSqlProxy.enabled is true" .Values.cloudSqlProxy.instanceConnectionName }}"
+          resources:
+{{ toYaml .Values.cloudSqlProxy.resources | indent 12 }}
+{{- end }}

@@ -26,6 +26,12 @@ trino:
 # Extra environment variables for the Trino container.
 extraEnv: []
 
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
 persistence:
   enabled: false
   size: 8Gi

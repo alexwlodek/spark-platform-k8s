@@ -16,6 +16,10 @@ spec:
       labels:
 {{ include "bi-trino.labels" . | indent 8 }}
     spec:
+{{- if or .Values.serviceAccount.create .Values.serviceAccount.name }}
+      serviceAccountName: {{ include "bi-trino.serviceAccountName" . | quote }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+{{- end }}
       containers:
         - name: trino
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

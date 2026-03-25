@@ -85,3 +85,15 @@ variable "public_gateway_ip_name" {
   type        = string
   default     = "data-platform-prod-public-gateway-ip"
 }
+
+variable "cloud_sql_private_service_range_name" {
+  description = "Reserved private service range name used for Cloud SQL private IP."
+  type        = string
+  default     = "data-platform-prod-cloudsql-private-range"
+}
+
+variable "cloud_sql_private_service_range_prefix_length" {
+  description = "Prefix length for the private service range used by Cloud SQL private IP."
+  type        = number
+  default     = 16
+}

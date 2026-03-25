@@ -29,3 +29,11 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- include "storage-nessie.fullname" . -}}
 {{- end -}}
 {{- end -}}
+
+{{- define "storage-nessie.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+{{- default (include "storage-nessie.fullname" .) .Values.serviceAccount.name -}}
+{{- else -}}
+{{- .Values.serviceAccount.name -}}
+{{- end -}}
+{{- end -}}

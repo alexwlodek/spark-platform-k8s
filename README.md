@@ -8,7 +8,11 @@ Current setup:
 - `prod` target environment (`data-platform-prod`): `clusters/prod` + `values/prod`
 - shared values: `values/common`
 
-`infra/envs/prod` is still a legacy AWS/EKS template set and is not the forward target. Production infrastructure now lives under `infra/envs/gcp/network` and `infra/envs/gcp/gke`.
+`infra/envs/prod` is still a legacy AWS/EKS template set and is not the forward target. Production infrastructure now lives under:
+
+- `infra/envs/gcp/network`
+- `infra/envs/gcp/gke`
+- `infra/envs/gcp/platform`
 
 GitOps uses app-of-apps (`root.yaml`) and in-cluster destination (`https://kubernetes.default.svc`).
 
@@ -50,7 +54,7 @@ DEPLOY_ENV=prod KUBE_CONTEXT=gke_data-platform-prod-491113_europe-central2_data-
 Wrappers:
 
 - `scripts/dev-bootstrap-argocd.sh`
-- `scripts/prod-deploy.sh` (`--network`, `--gke`, `--infra`, `--bootstrap`, `--all`)
+- `scripts/prod-deploy.sh` (`--network`, `--gke`, `--platform`, `--infra`, `--bootstrap`, `--all`)
 - `scripts/prod-bootstrap-argocd.sh`
 - `scripts/prod-up.sh` (get credentials + seed Argo CD and Cloudflare bootstrap secrets + bootstrap Argo CD + wait for External Secrets readiness)
 
@@ -65,17 +69,24 @@ Terraform for production infrastructure is split into:
 
 - `infra/envs/gcp/network`
 - `infra/envs/gcp/gke`
+- `infra/envs/gcp/platform`
 
 Apply order:
 
-1. `network` for VPC, subnet, Cloud NAT, reserved public IP, and optional Cloudflare DNS records.
-2. `gke` for the production GKE cluster, node pools, Workload Identity, and service accounts.
+1. `network` for VPC, subnet, Cloud NAT, reserved public IP, optional Cloudflare DNS records, and Private Service Access for Cloud SQL.
+2. `gke` for the production GKE cluster, node pools, Workload Identity, and cluster-level service accounts.
+3. `platform` for the managed data plane resources used by prod workloads:
+   - GCS bucket
+   - Cloud SQL for PostgreSQL
+   - runtime GSAs and Workload Identity bindings
+   - Secret Manager payload for Nessie DB credentials
 
 Suggested flow:
 
 ```bash
 cp infra/envs/gcp/network/terraform.tfvars.example infra/envs/gcp/network/terraform.tfvars
 cp infra/envs/gcp/gke/terraform.tfvars.example infra/envs/gcp/gke/terraform.tfvars
+cp infra/envs/gcp/platform/terraform.tfvars.example infra/envs/gcp/platform/terraform.tfvars
 
 terraform -chdir=infra/envs/gcp/network init
 terraform -chdir=infra/envs/gcp/network plan
@@ -85,6 +96,10 @@ terraform -chdir=infra/envs/gcp/gke init
 terraform -chdir=infra/envs/gcp/gke plan
 terraform -chdir=infra/envs/gcp/gke apply
 
+terraform -chdir=infra/envs/gcp/platform init
+terraform -chdir=infra/envs/gcp/platform plan
+terraform -chdir=infra/envs/gcp/platform apply
+
 # configure kubectl context (see terraform output too)
 gcloud container clusters get-credentials data-platform-prod --region europe-central2 --project data-platform-prod-491113
 
@@ -92,7 +107,7 @@ gcloud container clusters get-credentials data-platform-prod --region europe-cen
 scripts/prod-bootstrap-argocd.sh
 ```
 
-The production root app now ships the shared public access path:
+The production root app now ships the shared public access path plus the managed data services that are safe to run on GKE today:
 
 - `argocd`
 - `security-external-secrets`
@@ -104,6 +119,8 @@ The production root app now ships the shared public access path:
 - `logging-fluent-bit`
 - `platform-public-gateway`
 - `spark-operator`
+- `storage-nessie`
+- `bi-trino`
 
 One-command production entrypoint:
 
@@ -123,6 +140,7 @@ scripts/prod-deploy.sh --bootstrap
 ```
 
 Details are documented in `docs/prod-gke-public-access.md`.
+Managed-service mapping and migration rationale live in `docs/prod-gcp-managed-services-migration.md`.
 
 ## Kind image cache (GHCR)
 
@@ -184,7 +202,7 @@ scripts/dev-ui-links.sh
 - `apps`
 - `spark-operator`
 
-## Streaming pipeline (GitOps, DEV)
+## Streaming pipeline (GitOps, DEV reference)
 
 DEV stack adds production-like near-real-time path:
 
@@ -219,8 +237,24 @@ Spark job performs:
 - Kafka ingest (`orders` topic)
 - event-time windowing + watermark
 - aggregations (`events`, `revenue`)
-- checkpointing and Parquet sink to MinIO (`s3a://streaming-lake/...`)
+- checkpointing and Parquet sink to object storage
 - Prometheus metrics export (`inputRowsPerSecond`, `processedRowsPerSecond`, batch duration, lag, failures)
+
+## DEV vs PROD data services
+
+- DEV keeps local stateful components for a fully self-contained kind environment:
+  - `streaming-kafka`
+  - `storage-minio`
+  - `storage-nessie-db`
+  - `bi-metabase` with local PVC storage
+- PROD now uses managed GCP backends where the repo already has a clean contract:
+  - MinIO -> GCS
+  - Nessie PostgreSQL -> Cloud SQL for PostgreSQL
+  - object-store credentials -> Workload Identity
+  - in-cluster secret backend integration -> External Secrets + GCP Secret Manager
+- `storage-nessie` and `bi-trino` are now part of the prod root app set.
+- `streaming-pipeline` prod values are prepared for GCS, but the app is intentionally not enrolled in the prod root until a real managed Kafka endpoint is provided.
+- `streaming-kafka`, `storage-minio`, and `storage-nessie-db` remain DEV-only.
 
 ## Secret flow
 
@@ -233,11 +267,11 @@ Charts prepared for injected secrets (`existingSecret` support):
 - `charts/storage-nessie` -> `database.existingSecret` (`db-username`, `db-password`)
 - `charts/storage-nessie-db` -> `auth.existingSecret` (`database`, `username`, `password`, `postgres-password`)
 
-Recommended next step before SSO:
+Current PROD runtime secret model:
 
-1. Move remaining in-values credentials (`values/common/streaming-pipeline.yaml`, `values/common/bi-trino.yaml`) to Kubernetes Secrets.
-2. Bind Spark/Trino runtime config to those Secrets (no plaintext access keys in Git).
-3. After secret flow is stable, enable OIDC SSO for Argo CD and UI tools.
+1. External Secrets syncs control-plane and app credentials from GCP Secret Manager.
+2. Nessie gets DB credentials from Secret Manager, while Cloud SQL connectivity is handled through Workload Identity plus the Cloud SQL proxy sidecar.
+3. Spark and Trino use Workload Identity for GCS and no longer need S3-style static credentials in prod.
 
 ## Local secrets on DEV (kind)
 
@@ -286,9 +320,7 @@ Defaults used by production `ExternalSecret` manifests:
 - `spark-platform-prod-argocd`
 - `spark-platform-prod-cert-manager-cloudflare`
 - `spark-platform-prod-monitoring-grafana`
-- `spark-platform-prod-storage-minio`
 - `spark-platform-prod-storage-nessie`
-- `spark-platform-prod-storage-nessie-db`
 
 ## CI/CD for Spark image
 

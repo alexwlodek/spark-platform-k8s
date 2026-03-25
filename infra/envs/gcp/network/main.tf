@@ -11,6 +11,12 @@ resource "google_project_service" "compute" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "service_networking" {
+  project            = var.project_id
+  service            = "servicenetworking.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_compute_network" "main" {
   name                    = var.network_name
   auto_create_subnetworks = false
@@ -34,6 +40,27 @@ resource "google_compute_subnetwork" "gke" {
     range_name    = var.services_secondary_range_name
     ip_cidr_range = var.services_cidr
   }
+}
+
+resource "google_compute_global_address" "cloud_sql_private_service_range" {
+  name          = var.cloud_sql_private_service_range_name
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = var.cloud_sql_private_service_range_prefix_length
+  network       = google_compute_network.main.id
+
+  depends_on = [google_project_service.service_networking]
+}
+
+resource "google_service_networking_connection" "private_vpc_connection" {
+  network                 = google_compute_network.main.id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.cloud_sql_private_service_range.name]
+
+  depends_on = [
+    google_project_service.service_networking,
+    google_compute_global_address.cloud_sql_private_service_range,
+  ]
 }
 
 resource "google_compute_router" "nat" {

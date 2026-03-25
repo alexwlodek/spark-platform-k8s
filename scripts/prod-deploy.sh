@@ -6,6 +6,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TERRAFORM_GCP_ROOT_DIR="${TERRAFORM_GCP_ROOT_DIR:-${REPO_ROOT}/infra/envs/gcp}"
 TERRAFORM_GCP_NETWORK_DIR="${TERRAFORM_GCP_NETWORK_DIR:-${TERRAFORM_GCP_ROOT_DIR}/network}"
 TERRAFORM_GCP_GKE_DIR="${TERRAFORM_GCP_GKE_DIR:-${TERRAFORM_GCP_ROOT_DIR}/gke}"
+TERRAFORM_GCP_PLATFORM_DIR="${TERRAFORM_GCP_PLATFORM_DIR:-${TERRAFORM_GCP_ROOT_DIR}/platform}"
 
 MODE="all"
 AUTO_APPROVE="${AUTO_APPROVE:-0}"
@@ -13,12 +14,13 @@ AUTO_APPROVE="${AUTO_APPROVE:-0}"
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/prod-deploy.sh [--network | --gke | --infra | --bootstrap | --all] [--auto-approve]
+  scripts/prod-deploy.sh [--network | --gke | --platform | --infra | --bootstrap | --all] [--auto-approve]
 
 Modes:
   --network      Run Terraform init + apply for shared production network resources
   --gke          Run Terraform init + apply for the production GKE cluster
-  --infra        Run network first, then GKE
+  --platform     Run Terraform init + apply for production managed data services
+  --infra        Run network first, then GKE, then managed data services
   --bootstrap    Configure kube context, seed Argo CD secret, bootstrap Argo CD
   --all          Run infra first, then bootstrap (default)
 
@@ -30,6 +32,7 @@ Useful env overrides:
   TERRAFORM_GCP_ROOT_DIR
   TERRAFORM_GCP_NETWORK_DIR
   TERRAFORM_GCP_GKE_DIR
+  TERRAFORM_GCP_PLATFORM_DIR
   PROJECT_ID
   REGION
   CLUSTER_NAME
@@ -58,6 +61,9 @@ parse_args() {
         ;;
       --gke)
         MODE="gke"
+        ;;
+      --platform)
+        MODE="platform"
         ;;
       --bootstrap)
         MODE="bootstrap"
@@ -113,9 +119,14 @@ run_gke() {
   run_terraform_stack "PROD GKE stack" "${TERRAFORM_GCP_GKE_DIR}"
 }
 
+run_platform() {
+  run_terraform_stack "PROD managed platform services stack" "${TERRAFORM_GCP_PLATFORM_DIR}"
+}
+
 run_infra() {
   run_network
   run_gke
+  run_platform
 }
 
 run_bootstrap() {
@@ -131,6 +142,9 @@ case "${MODE}" in
     ;;
   gke)
     run_gke
+    ;;
+  platform)
+    run_platform
     ;;
   infra)
     run_infra

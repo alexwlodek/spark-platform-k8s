@@ -20,19 +20,7 @@ trino:
       connector.name=tpch
     memory: |
       connector.name=memory
-  additionalCatalogs:
-    iceberg_nessie: |
-      connector.name=iceberg
-      iceberg.catalog.type=nessie
-      iceberg.nessie-catalog.uri=http://storage-nessie.apps.svc.cluster.local:19120/api/v2
-      iceberg.nessie-catalog.ref=main
-      iceberg.nessie-catalog.default-warehouse-dir=s3://streaming-lake/iceberg
-      fs.native-s3.enabled=true
-      s3.endpoint=http://storage-minio.apps.svc.cluster.local:9000
-      s3.path-style-access=true
-      s3.region=eu-central-1
-      s3.aws-access-key=${ENV:TRINO_S3_ACCESS_KEY}
-      s3.aws-secret-key=${ENV:TRINO_S3_SECRET_KEY}
+  additionalCatalogs: {}
 
 persistence:
   enabled: false

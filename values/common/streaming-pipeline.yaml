@@ -115,24 +115,12 @@ sparkApplication:
     spark.sql.shuffle.partitions: "2"
     spark.sql.streaming.metricsEnabled: "true"
     spark.jars.ivy: /tmp/.ivy2
-    spark.jars.packages: org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.2,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.6.1,org.apache.iceberg:iceberg-aws-bundle:1.6.1
     spark.sql.extensions: org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
     spark.sql.catalog.iceberg_nessie: org.apache.iceberg.spark.SparkCatalog
     spark.sql.catalog.iceberg_nessie.catalog-impl: org.apache.iceberg.nessie.NessieCatalog
     spark.sql.catalog.iceberg_nessie.uri: http://storage-nessie.apps.svc.cluster.local:19120/api/v2
     spark.sql.catalog.iceberg_nessie.ref: main
     spark.sql.catalog.iceberg_nessie.authentication.type: NONE
-    spark.sql.catalog.iceberg_nessie.warehouse: s3://streaming-lake/iceberg
-    spark.sql.catalog.iceberg_nessie.io-impl: org.apache.iceberg.aws.s3.S3FileIO
-    spark.sql.catalog.iceberg_nessie.s3.endpoint: http://storage-minio.apps.svc.cluster.local:9000
-    spark.sql.catalog.iceberg_nessie.s3.path-style-access: "true"
-    spark.sql.catalog.iceberg_nessie.s3.region: eu-central-1
-    spark.sql.catalog.iceberg_nessie.client.region: eu-central-1
-    spark.hadoop.fs.s3a.impl: org.apache.hadoop.fs.s3a.S3AFileSystem
-    spark.hadoop.fs.s3a.endpoint: http://storage-minio.apps.svc.cluster.local:9000
-    spark.hadoop.fs.s3a.path.style.access: "true"
-    spark.hadoop.fs.s3a.connection.ssl.enabled: "false"
-    spark.hadoop.fs.s3a.aws.credentials.provider: com.amazonaws.auth.EnvironmentVariableCredentialsProvider
   restartPolicy:
     type: OnFailure
     onFailureRetries: 3
@@ -153,10 +141,6 @@ sparkApplication:
     env:
       - name: PYTHONUNBUFFERED
         value: "1"
-      - name: AWS_REGION
-        value: "eu-central-1"
-      - name: AWS_DEFAULT_REGION
-        value: "eu-central-1"
   executor:
     instances: 1
     cores: 1
@@ -165,11 +149,7 @@ sparkApplication:
     deleteOnTermination: true
     labels:
       streaming-query: commerce-events-streaming
-    env:
-      - name: AWS_REGION
-        value: "eu-central-1"
-      - name: AWS_DEFAULT_REGION
-        value: "eu-central-1"
+    env: []
 
 metrics:
   podMonitor:

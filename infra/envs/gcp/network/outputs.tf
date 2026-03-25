@@ -38,6 +38,11 @@ output "public_gateway_ip_address" {
   value       = google_compute_global_address.public_gateway.address
 }
 
+output "cloud_sql_private_service_range_name" {
+  description = "Private service range reserved for Cloud SQL private IP."
+  value       = google_compute_global_address.cloud_sql_private_service_range.name
+}
+
 output "public_hosts" {
   description = "Expected public hosts routed by the shared public gateway."
   value       = local.public_hosts

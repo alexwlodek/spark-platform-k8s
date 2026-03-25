@@ -19,6 +19,29 @@ database:
   name: nessie
   username: nessie
 
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+cloudSqlProxy:
+  enabled: false
+  image:
+    repository: gcr.io/cloud-sql-connectors/cloud-sql-proxy
+    tag: "2.18.3"
+    pullPolicy: IfNotPresent
+  instanceConnectionName: ""
+  port: 5432
+  privateIP: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
 resources:
   requests:
     cpu: 150m

@@ -1,2 +1,2 @@
-# PROD placeholder: replace MinIO with Amazon S3.
-# Keep empty for now and override storage endpoints in values/prod/streaming-pipeline.yaml.
+# PROD uses Google Cloud Storage from Terraform (`infra/envs/gcp/platform`).
+# In-cluster MinIO stays DEV-only and is intentionally not deployed in PROD.

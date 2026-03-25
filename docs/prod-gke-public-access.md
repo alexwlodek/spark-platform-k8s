@@ -18,12 +18,18 @@ Infrastructure is split so the static IP survives cluster replacement:
   - VPC
   - subnet + secondary ranges
   - Cloud NAT
+  - Private Service Access for Cloud SQL
   - reserved global public IP
   - optional Cloudflare DNS records
 - `infra/envs/gcp/gke`
   - GKE cluster
   - platform node pool
   - Workload Identity service accounts
+- `infra/envs/gcp/platform`
+  - GCS lake bucket
+  - Cloud SQL for PostgreSQL
+  - workload runtime GSAs
+  - Secret Manager payload for Nessie DB credentials
 
 GitOps then layers public access on top:
 
@@ -86,6 +92,14 @@ terraform -chdir=infra/envs/gcp/gke init
 terraform -chdir=infra/envs/gcp/gke apply
 ```
 
+Then apply the managed data stack:
+
+```bash
+cp infra/envs/gcp/platform/terraform.tfvars.example infra/envs/gcp/platform/terraform.tfvars
+terraform -chdir=infra/envs/gcp/platform init
+terraform -chdir=infra/envs/gcp/platform apply
+```
+
 The reserved public IP is created in the `network` stack with `prevent_destroy = true`, so deleting or recreating the cluster does not release the IP.
 
 If `cloudflare_zone_id` is set in the `network` stack and a Cloudflare API token is present in the Terraform environment, Terraform also creates DNS records pointing all public hosts to the shared static IP.
@@ -129,11 +143,12 @@ This performs:
 
 1. `network` Terraform apply
 2. `gke` Terraform apply
-3. GKE credential setup
-4. Secret Manager seed for Cloudflare token
-5. Secret Manager + bootstrap Kubernetes seed for Argo CD admin secret
-6. Argo CD bootstrap
-7. GitOps reconciliation for cert-manager, monitoring, logging, and the shared Gateway
+3. `platform` Terraform apply
+4. GKE credential setup
+5. Secret Manager seed for Cloudflare token
+6. Secret Manager + bootstrap Kubernetes seed for Argo CD admin secret
+7. Argo CD bootstrap
+8. GitOps reconciliation for cert-manager, monitoring, logging, the shared Gateway, and the prod data apps
 
 ## Validation
 
@@ -143,6 +158,8 @@ Terraform outputs:
 terraform -chdir=infra/envs/gcp/network output public_gateway_ip_address
 terraform -chdir=infra/envs/gcp/network output public_hosts
 terraform -chdir=infra/envs/gcp/gke output get_credentials_command
+terraform -chdir=infra/envs/gcp/platform output lake_bucket_name
+terraform -chdir=infra/envs/gcp/platform output cloud_sql_instance_connection_name
 ```
 
 Kubernetes checks:

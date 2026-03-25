@@ -1,4 +1,4 @@
-# GKE/PROD phase 1: bootstrap only spark-operator.
+# GKE/PROD runtime config for Spark jobs that use Workload Identity.
 replicaCount: 2
 
 webhook:
@@ -6,14 +6,18 @@ webhook:
 
 spark:
   jobNamespaces:
+    - apps
     - spark-operator
+  serviceAccount:
+    name: spark-operator-spark
+    annotations:
+      iam.gke.io/gcp-service-account: lake-runtime@data-platform-prod-491113.iam.gserviceaccount.com
 
 prometheus:
   metrics:
     enable: true
   podMonitor:
-    # Disabled until monitoring stack is enabled in prod.
-    create: false
+    create: true
 
 resources:
   requests:
