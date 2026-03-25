@@ -16,10 +16,10 @@ master:
   resources:
     requests:
       cpu: 300m
-      memory: 1024Mi
+      memory: 1Gi
     limits:
       cpu: "1"
-      memory: 1024Mi
+      memory: 1Gi
   persistence:
     enabled: true
     size: 10Gi

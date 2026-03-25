@@ -21,7 +21,9 @@ spec:
       tls:
         mode: Terminate
         certificateRefs:
-          - name: {{ .Values.certificate.secretName }}
+          - group: ""
+            kind: Secret
+            name: {{ .Values.certificate.secretName }}
       allowedRoutes:
         namespaces:
           from: All

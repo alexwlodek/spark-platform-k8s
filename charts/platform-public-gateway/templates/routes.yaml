@@ -9,11 +9,17 @@ spec:
   hostnames:
     - {{ .host | quote }}
   parentRefs:
-    - name: {{ $.Values.gateway.name }}
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $.Values.gateway.name }}
       namespace: {{ $.Values.gateway.namespace }}
       sectionName: http
   rules:
-    - filters:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
         - type: RequestRedirect
           requestRedirect:
             scheme: https
@@ -28,7 +34,9 @@ spec:
   hostnames:
     - {{ .host | quote }}
   parentRefs:
-    - name: {{ $.Values.gateway.name }}
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $.Values.gateway.name }}
       namespace: {{ $.Values.gateway.namespace }}
       sectionName: https
   rules:
@@ -37,8 +45,11 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: {{ .serviceName }}
+        - group: ""
+          kind: Service
+          name: {{ .serviceName }}
           port: {{ .servicePort }}
+          weight: 1
 ---
 apiVersion: networking.gke.io/v1
 kind: HealthCheckPolicy
