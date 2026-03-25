@@ -85,6 +85,7 @@ resource "google_sql_database_instance" "nessie" {
   deletion_protection = var.cloud_sql_deletion_protection
 
   settings {
+    edition           = var.cloud_sql_edition
     tier              = var.cloud_sql_tier
     availability_type = var.cloud_sql_availability_type
     disk_type         = var.cloud_sql_disk_type

@@ -314,6 +314,7 @@ Production auth model:
 - External Secrets uses GKE Workload Identity via the `external-secrets` service account annotation in `values/prod/external-secrets.yaml`.
 - `values/prod/argocd.yaml` disables chart-managed secret creation; `scripts/bootstrap-argocd.sh` seeds `argocd-secret` with `server.secretkey` until the `ExternalSecret` reconciles.
 - `scripts/prod-cloudflare-secret-seed.sh` seeds the Cloudflare API token used by cert-manager DNS-01 and stores it in GCP Secret Manager for External Secrets to project into Kubernetes.
+- `scripts/prod-grafana-secret-seed.sh` ensures Grafana admin credentials exist in GCP Secret Manager before the monitoring chart syncs; on first bootstrap it reuses any existing payload or generates a password automatically.
 
 Defaults used by production `ExternalSecret` manifests:
 

@@ -106,6 +106,7 @@ Reasoning:
   - runtime GSAs for Spark/Trino and Nessie
   - Workload Identity bindings
   - Secret Manager secret material for Nessie DB credentials
+- Pin the Cloud SQL edition explicitly so PostgreSQL 16 does not silently default to Enterprise Plus and reject the custom `db-custom-*` tier.
 - Extend the production helper script so `--infra` now means `network -> gke -> platform`.
 
 ### Files created or edited
@@ -228,10 +229,10 @@ Reasoning:
    - `network`
    - `gke`
    - `platform`
-3. Seed or confirm the remaining non-generated Secret Manager payloads:
+3. Seed or confirm the remaining user-supplied Secret Manager payloads:
    - `spark-platform-prod-argocd`
    - `spark-platform-prod-cert-manager-cloudflare`
-   - `spark-platform-prod-monitoring-grafana`
+   Grafana admin credentials are bootstrapped automatically into `spark-platform-prod-monitoring-grafana` unless you override `GRAFANA_ADMIN_USER` or `GRAFANA_ADMIN_PASSWORD`.
 4. Run `scripts/prod-deploy.sh --bootstrap` or `scripts/prod-deploy.sh --all`.
 5. Verify Argo CD apps:
    - `storage-nessie`

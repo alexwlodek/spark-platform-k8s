@@ -149,6 +149,9 @@ This performs:
 6. Secret Manager + bootstrap Kubernetes seed for Argo CD admin secret
 7. Argo CD bootstrap
 8. GitOps reconciliation for cert-manager, monitoring, logging, the shared Gateway, and the prod data apps
+9. Wait for the shared Gateway to become `Programmed=True`, the wildcard certificate to become `Ready=True`, and the public Argo CD URL to return a successful HTTPS response
+
+The first bootstrap can still take a few minutes after Argo CD itself is running because GKE must provision the external Application Load Balancer and attach the TLS certificate. The bootstrap script now waits for that public entry point before reporting success.
 
 ## Validation
 

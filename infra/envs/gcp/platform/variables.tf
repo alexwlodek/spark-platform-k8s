@@ -82,6 +82,17 @@ variable "cloud_sql_database_version" {
   default     = "POSTGRES_16"
 }
 
+variable "cloud_sql_edition" {
+  description = "Cloud SQL edition. Use ENTERPRISE for custom db-custom tiers, or ENTERPRISE_PLUS with predefined db-perf-optimized-* tiers."
+  type        = string
+  default     = "ENTERPRISE"
+
+  validation {
+    condition     = contains(["ENTERPRISE", "ENTERPRISE_PLUS"], var.cloud_sql_edition)
+    error_message = "cloud_sql_edition must be ENTERPRISE or ENTERPRISE_PLUS."
+  }
+}
+
 variable "cloud_sql_tier" {
   description = "Cloud SQL machine tier for the Nessie metadata database."
   type        = string

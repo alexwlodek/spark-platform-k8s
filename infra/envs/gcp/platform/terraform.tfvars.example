@@ -6,6 +6,7 @@ lake_bucket_name  = "data-platform-prod-lake"
 lake_bucket_location = "EUROPE-CENTRAL2"
 
 cloud_sql_instance_name = "data-platform-prod-nessie"
+cloud_sql_edition       = "ENTERPRISE"
 cloud_sql_tier          = "db-custom-1-3840"
 cloud_sql_availability_type = "ZONAL"
 cloud_sql_disk_size_gb  = 20

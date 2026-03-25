@@ -87,6 +87,7 @@ get_existing_secret_json() {
 }
 
 existing_secret_json=""
+existing_secret_json_for_jq="{}"
 
 if [[ "${FORCE_RESEED}" == "1" ]]; then
   echo "FORCE_RESEED=1 set; ignoring any existing payload in ${PROJECT_ID}/${ARGOCD_SECRET_NAME}."
@@ -101,6 +102,10 @@ else
   fi
 fi
 
+if [[ -n "${existing_secret_json}" ]]; then
+  existing_secret_json_for_jq="${existing_secret_json}"
+fi
+
 if ! secret_exists; then
   echo "Creating Secret Manager secret ${PROJECT_ID}/${ARGOCD_SECRET_NAME}..."
   gcloud secrets create "${ARGOCD_SECRET_NAME}" \
@@ -108,9 +113,9 @@ if ! secret_exists; then
     --project "${PROJECT_ID}" >/dev/null
 fi
 
-existing_admin_password_hash="$(jq -r '.["admin.password"] // ""' <<<"${existing_secret_json:-{}}")"
-existing_admin_password_mtime="$(jq -r '.["admin.passwordMtime"] // ""' <<<"${existing_secret_json:-{}}")"
-existing_server_secretkey="$(jq -r '.["server.secretkey"] // ""' <<<"${existing_secret_json:-{}}")"
+existing_admin_password_hash="$(jq -r '.["admin.password"] // ""' <<<"${existing_secret_json_for_jq}")"
+existing_admin_password_mtime="$(jq -r '.["admin.passwordMtime"] // ""' <<<"${existing_secret_json_for_jq}")"
+existing_server_secretkey="$(jq -r '.["server.secretkey"] // ""' <<<"${existing_secret_json_for_jq}")"
 
 if [[ -n "${ARGOCD_ADMIN_BCRYPT_HASH}" ]]; then
   admin_password_hash="${ARGOCD_ADMIN_BCRYPT_HASH}"
