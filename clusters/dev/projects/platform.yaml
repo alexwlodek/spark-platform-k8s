@@ -6,7 +6,7 @@ metadata:
 spec:
   description: Platform components + demo apps (DEV)
   sourceRepos:
-    - https://github.com/alexwlodek/spark-platform-k8s.git
+    - https://github.com/alexwlodek/gitops-data-platform.git
     - https://prometheus-community.github.io/helm-charts
     - https://kubeflow.github.io/spark-operator
     - https://argoproj.github.io/argo-helm

@@ -23,7 +23,7 @@ spec:
         valueFiles:
           - $values/values/common/monitoring.yaml
           - $values/values/prod/monitoring.yaml
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       ref: values
   destination:

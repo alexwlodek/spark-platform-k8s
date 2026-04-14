@@ -8,7 +8,7 @@ metadata:
 spec:
   project: platform
   sources:
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       path: charts/bi-trino
       helm:
@@ -16,7 +16,7 @@ spec:
         valueFiles:
           - $values/values/common/bi-trino.yaml
           - $values/values/prod/bi-trino.yaml
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       ref: values
   destination:

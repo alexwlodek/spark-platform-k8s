@@ -25,7 +25,7 @@ spec:
         valueFiles:
           - $values/values/common/argocd.yaml
           - $values/values/dev/argocd.yaml
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       ref: values
   destination:

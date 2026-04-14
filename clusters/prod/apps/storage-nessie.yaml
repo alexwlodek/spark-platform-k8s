@@ -8,7 +8,7 @@ metadata:
 spec:
   project: platform
   sources:
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       path: charts/storage-nessie
       helm:
@@ -16,7 +16,7 @@ spec:
         valueFiles:
           - $values/values/common/storage-nessie.yaml
           - $values/values/prod/storage-nessie.yaml
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       ref: values
   destination:

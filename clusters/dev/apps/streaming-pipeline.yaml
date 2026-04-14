@@ -8,7 +8,7 @@ metadata:
 spec:
   project: platform
   sources:
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       path: charts/streaming-pipeline
       helm:
@@ -17,7 +17,7 @@ spec:
           - $values/values/common/streaming-pipeline.yaml
           - $values/values/dev/streaming-pipeline.yaml
           - $values/values/dev/streaming-generator-image.yaml
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       ref: values
   destination:

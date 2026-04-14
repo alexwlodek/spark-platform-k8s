@@ -23,7 +23,7 @@ spec:
         - .spec.volumeClaimTemplates[]?.status
         - .spec.volumeClaimTemplates[]?.spec.volumeMode
   sources:
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       path: charts/storage-nessie-db
       helm:
@@ -31,7 +31,7 @@ spec:
         valueFiles:
           - $values/values/common/storage-nessie-db.yaml
           - $values/values/dev/storage-nessie-db.yaml
-    - repoURL: https://github.com/alexwlodek/spark-platform-k8s.git
+    - repoURL: https://github.com/alexwlodek/gitops-data-platform.git
       targetRevision: main
       ref: values
   destination:
